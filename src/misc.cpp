@@ -294,7 +294,7 @@ void prefetch(void* addr) {
 #endif
 
 
-/// aligned_ttmem_alloc() will return suitably aligned memory, and if possible use large pages.
+/// aligned_ttmem_alloc() will return suitably aligned memory, if possible using large pages.
 /// The returned pointer is the aligned one, while the mem argument is the one that needs
 /// to be passed to free. With c++17 some of this functionality could be simplified.
 

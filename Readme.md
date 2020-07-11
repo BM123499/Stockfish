@@ -4,11 +4,11 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish/branch/master)
 
 [Stockfish](https://stockfishchess.org) is a free, powerful UCI chess engine
-derived from Glaurung 2.1. It is not a complete chess program and requires a
-UCI-compatible GUI (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard, Arena,
-Sigma Chess, Shredder, Chess Partner or Fritz) in order to be used comfortably.
-Read the documentation for your GUI of choice for information about how to use
-Stockfish with it.
+derived from Glaurung 2.1. Stockfish is not a complete chess program and requires a
+UCI-compatible graphical user interface (GUI) (e.g. XBoard with PolyGlot, Scid,
+Cute Chess, eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz) in order
+to be used comfortably. Read the documentation for your GUI of choice for information
+about how to use Stockfish with it.
 
 
 ## Files
@@ -54,13 +54,8 @@ Currently, Stockfish has the following UCI options:
     Output the N best lines (principal variations, PVs) when searching.
     Leave at 1 for best performance.
 
-  * #### Skill Level
-    Lower the Skill Level in order to make Stockfish play weaker (see also UCI_LimitStrength).
-    Internally, MultiPV is enabled, and with a certain probability depending on the Skill Level a
-    weaker move will be played.
-
-  * #### UCI_LimitStrength
-    Enable weaker play aiming for an Elo rating as set by UCI_Elo. This option overrides Skill Level.
+  * #### UCI_AnalyseMode
+    An option handled by your GUI.
 
   * #### UCI_Elo
     If enabled by UCI_LimitStrength, aim for an engine strength of the given Elo.
@@ -114,6 +109,31 @@ Currently, Stockfish has the following UCI options:
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
 
+  * #### Contempt
+    A positive value for contempt favors middle game positions and avoids draws,
+    effective for the classical evaluation only.
+
+  * #### Analysis Contempt
+    By default, contempt is set to prefer the side to move. Set this option to "White"
+    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
+
+  * #### Move Overhead
+    Assume a time delay of x ms due to network and GUI overheads. This is useful to
+    avoid losses on time in those cases.
+
+  * #### Slow Mover
+    Lower values will make Stockfish take less time in games, higher values will
+    make it think longer.
+
+  * #### nodestime
+    Tells the engine to use nodes searched instead of wall time to account for
+    elapsed time. Useful for engine testing.
+
+  * #### Clear Hash
+    Clear the hash table.
+
+  * #### Debug Log File
+    Write all communication to and from the engine into a text file.
 
 ## What to expect from Syzygybases?
 
@@ -179,6 +199,7 @@ targets with corresponding descriptions.
     cd src
     make help
     make build ARCH=x86-64-modern
+    make net
 ```
 
 When not using the Makefile to compile (for instance with Microsoft MSVC) you
@@ -190,8 +211,7 @@ compiler you used to create your executable. These informations can
 be found by typing the following commands in a console:
 
 ```
-    ./stockfish
-    compiler
+    ./stockfish compiler
 ```
 
 ## Understanding the code base and participating in the project
