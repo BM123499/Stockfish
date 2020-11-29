@@ -98,7 +98,7 @@ Currently, Stockfish has the following UCI options:
 
   * #### SyzygyProbeDepth
     Minimum remaining search depth for which a position is probed. Set this option
-    to a higher value to probe less agressively if you experience too much slowdown
+    to a higher value to probe less aggressively if you experience too much slowdown
     (in terms of nps) due to TB probing.
 
   * #### Syzygy50MoveRule
@@ -139,8 +139,8 @@ Currently, Stockfish has the following UCI options:
 
 If the engine is searching a position that is not in the tablebases (e.g.
 a position with 8 pieces), it will access the tablebases during the search.
-If the engine reports a very large score (typically 153.xx), this means
-that it has found a winning line into a tablebase position.
+If the engine reports a very large score (typically 153.xx), this means 
+it has found a winning line into a tablebase position.
 
 If the engine is given a position to search that is in the tablebases, it
 will use the tablebases at the beginning of the search to preselect all
@@ -148,7 +148,7 @@ good moves, i.e. all moves that preserve the win or preserve the draw while
 taking into account the 50-move rule.
 It will then perform a search only on those moves. **The engine will not move
 immediately**, unless there is only a single good move. **The engine likely
-will not report a mate score even if the position is known to be won.**
+will not report a mate score, even if the position is known to be won.**
 
 It is therefore clear that this behaviour is not identical to what one might
 be used to with Nalimov tablebases. There are technical reasons for this
@@ -173,17 +173,17 @@ will fall back to regular memory allocation when this is not the case.
 
 Large page support on Linux is obtained by the Linux kernel
 transparent huge pages functionality. Typically, transparent huge pages
-are already enabled and no configuration is needed.
+are already enabled, and no configuration is needed.
 
 ### Support on Windows
 
 The use of large pages requires "Lock Pages in Memory" privilege. See
 [Enable the Lock Pages in Memory Option (Windows)](https://docs.microsoft.com/en-us/sql/database-engine/configure-windows/enable-the-lock-pages-in-memory-option-windows)
-on how to enable this privilege. Logout/login may be needed
-afterwards. Due to memory fragmentation, it may not always be
-possible to allocate large pages even when enabled. A reboot
-might alleviate this problem. To determine whether large pages
-are in use, see the engine log.
+on how to enable this privilege, then run [RAMMap](https://docs.microsoft.com/en-us/sysinternals/downloads/rammap)
+to double-check that large pages are used. We suggest that you reboot
+your computer after you have enabled large pages, because long Windows
+sessions suffer from memory fragmentation, which may prevent Stockfish
+from getting large pages: a fresh session is better in this regard.
 
 ## Compiling Stockfish yourself from the sources
 
@@ -202,7 +202,7 @@ targets with corresponding descriptions.
     make net
 ```
 
-When not using the Makefile to compile (for instance with Microsoft MSVC) you
+When not using the Makefile to compile (for instance, with Microsoft MSVC) you
 need to manually set/unset some switches in the compiler command line; see
 file *types.h* for a quick reference.
 
@@ -247,9 +247,9 @@ first, where the basics of Stockfish development are explained.
 ## Terms of use
 
 Stockfish is free, and distributed under the **GNU General Public License version 3**
-(GPL v3). Essentially, this means that you are free to do almost exactly
+(GPL v3). Essentially, this means you are free to do almost exactly
 what you want with the program, including distributing it among your
-friends, making it available for download from your web site, selling
+friends, making it available for download from your website, selling
 it (either by itself or as part of some bigger software package), or
 using it as the starting point for a software project of your own.
 
