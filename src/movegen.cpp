@@ -56,7 +56,7 @@ namespace {
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     const Square ksq = pos.square<KING>(Them);
-    Bitboard emptySquares;
+    Bitboard emptySquares, notPushBlocked, notBlockedCaptUR, notBlockedCaptUL;
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
@@ -67,9 +67,10 @@ namespace {
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+        emptySquares   = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+        notPushBlocked = file_bb(file_of(pos.square<KING>(Us))) | ~pos.blockers_for_king(Us);
 
-        Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
+        Bitboard b1 = shift<Up>(pawnsNotOn7 & notPushBlocked) & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRank3BB) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
@@ -87,7 +88,7 @@ namespace {
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovered check
             // promotion has been already generated amongst the captures.
-            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
+            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7 & notPushBlocked;
             if (dcCandidateQuiets)
             {
                 Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
@@ -113,16 +114,28 @@ namespace {
 
     // Promotions and underpromotions
     if (pawnsOn7)
-    {
+    {   
+        if (Type == CAPTURES)
+            notPushBlocked = file_bb(file_of(pos.square<KING>(Us))) | ~pos.blockers_for_king(Us);
+        
+        {
+            Bitboard b = pos.pieces(Us, KING);
+            Square s  = pos.square<KING>(Us); 
+            Square s1 = shift<UpRight>(b) ? s + UpRight : shift<-UpRight>(b) ? s - UpRight : SQ_NONE;
+            Square s2 = shift<UpLeft >(b) ? s + UpLeft  : shift< -UpLeft>(b) ? s - UpLeft  : SQ_NONE;
+            notBlockedCaptUR = ~pos.blockers_for_king(Us) | (s1 != SQ_NONE ? line_bb(s, s1) : 0);
+            notBlockedCaptUL = ~pos.blockers_for_king(Us) | (s2 != SQ_NONE ? line_bb(s, s2) : 0);
+        }
+
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
 
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+        Bitboard b1 = shift<UpRight>(pawnsOn7 & notBlockedCaptUR) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsOn7 & notBlockedCaptUL) & enemies;
+        Bitboard b3 = shift<Up     >(pawnsOn7 & notPushBlocked  ) & emptySquares;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(&b1), ksq);
@@ -137,8 +150,17 @@ namespace {
     // Standard and en passant captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
+        if (!pawnsOn7){
+            Bitboard b = pos.pieces(Us, KING);
+            Square s  = pos.square<KING>(Us); 
+            Square s1 = shift<UpRight>(b) ? s + UpRight : shift<-UpRight>(b) ? s - UpRight : SQ_NONE;
+            Square s2 = shift<UpLeft >(b) ? s + UpLeft  : shift< -UpLeft>(b) ? s - UpLeft  : SQ_NONE;
+            notBlockedCaptUR = ~pos.blockers_for_king(Us) | (s1 != SQ_NONE ? line_bb(s, s1) : 0);
+            notBlockedCaptUL = ~pos.blockers_for_king(Us) | (s2 != SQ_NONE ? line_bb(s, s2) : 0);
+        }
+
+        Bitboard b1 = shift<UpRight>(pawnsNotOn7 & notBlockedCaptUR) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsNotOn7 & notBlockedCaptUL) & enemies;
 
         while (b1)
         {
@@ -206,7 +228,8 @@ namespace {
     static_assert(Type != LEGAL, "Unsupported type in generate_all()");
 
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
-    Bitboard target, piecesToMove = pos.pieces(Us);
+    Bitboard target, piecesToMove = pos.pieces(Us) & ~pos.blockers_for_king(Us);
+    Square ksq = pos.square<KING>(Us);
 
     if(Type == QUIET_CHECKS)
         piecesToMove &= ~pos.blockers_for_king(~Us);
@@ -237,9 +260,24 @@ namespace {
     moveList = generate_moves<  ROOK, Checks>(pos, moveList, piecesToMove, target);
     moveList = generate_moves< QUEEN, Checks>(pos, moveList, piecesToMove, target);
 
+    piecesToMove = pos.pieces(Us) & pos.blockers_for_king(Us) & ~pos.pieces(PAWN);
+    if(Type == QUIET_CHECKS)
+        piecesToMove &= ~pos.blockers_for_king(~Us);
+
+    while (piecesToMove){
+        Square    from = pop_lsb(&piecesToMove);
+        PieceType pt   = type_of(pos.piece_on(from));
+        Bitboard  b    = attacks_bb(pt, from, pos.pieces()) & target & line_bb(from, ksq);
+
+        if constexpr (Type == QUIET_CHECKS)
+            b &= pos.check_squares(pt);
+
+        while (b)
+            *moveList++ = make_move(from, pop_lsb(&b));
+    }
+
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
-        Square ksq = pos.square<KING>(Us);
         Bitboard b = attacks_bb<KING>(ksq) & target;
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
@@ -347,15 +385,13 @@ template<>
 ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
   Color us = pos.side_to_move();
-  Bitboard pinned = pos.blockers_for_king(us) & pos.pieces(us);
   Square ksq = pos.square<KING>(us);
   ExtMove* cur = moveList;
 
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
-      if (   (pinned || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
-          && !pos.legal(*cur))
+      if ((from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT) && !pos.legal(*cur))
           *cur = (--moveList)->move;
       else
           ++cur;
