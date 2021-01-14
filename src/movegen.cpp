@@ -56,10 +56,11 @@ namespace {
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     const Square ksq = pos.square<KING>(Them);
-    Bitboard emptySquares, notPushBlocked, notBlockedCaptUR, notBlockedCaptUL;
+    Bitboard emptySquares;
 
-    Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
+    Bitboard blockedPawns = pos.pieces(Us, PAWN) & pos.blockers_for_king(Us);
+    Bitboard pawnsOn7     = pos.pieces(Us, PAWN) &  TRank7BB & ~blockedPawns;
+    Bitboard pawnsNotOn7  = pos.pieces(Us, PAWN) & ~TRank7BB & ~blockedPawns;
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));
@@ -67,10 +68,9 @@ namespace {
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        emptySquares   = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
-        notPushBlocked = file_bb(file_of(pos.square<KING>(Us))) | ~pos.blockers_for_king(Us);
+        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
 
-        Bitboard b1 = shift<Up>(pawnsNotOn7 & notPushBlocked) & emptySquares;
+        Bitboard b1 = shift<Up>(pawnsNotOn7) & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRank3BB) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
@@ -88,7 +88,7 @@ namespace {
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovered check
             // promotion has been already generated amongst the captures.
-            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7 & notPushBlocked;
+            Bitboard dcCandidateQuiets = (pos.blockers_for_king(Them) & pawnsNotOn7) | (blockedPawns & file_bb(file_of(pos.square<KING>(Us))));
             if (dcCandidateQuiets)
             {
                 Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
@@ -116,26 +116,14 @@ namespace {
     if (pawnsOn7)
     {   
         if (Type == CAPTURES)
-            notPushBlocked = file_bb(file_of(pos.square<KING>(Us))) | ~pos.blockers_for_king(Us);
-        
-        {
-            Bitboard b = pos.pieces(Us, KING);
-            Square s  = pos.square<KING>(Us); 
-            Square s1 = shift<UpRight>(b) ? s + UpRight : shift<-UpRight>(b) ? s - UpRight : SQ_NONE;
-            Square s2 = shift<UpLeft >(b) ? s + UpLeft  : shift< -UpLeft>(b) ? s - UpLeft  : SQ_NONE;
-            notBlockedCaptUR = ~pos.blockers_for_king(Us) | (s1 != SQ_NONE ? line_bb(s, s1) : 0);
-            notBlockedCaptUL = ~pos.blockers_for_king(Us) | (s2 != SQ_NONE ? line_bb(s, s2) : 0);
-        }
-
-        if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
 
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b1 = shift<UpRight>(pawnsOn7 & notBlockedCaptUR) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsOn7 & notBlockedCaptUL) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7 & notPushBlocked  ) & emptySquares;
+        Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
+        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(&b1), ksq);
@@ -150,17 +138,8 @@ namespace {
     // Standard and en passant captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        if (!pawnsOn7){
-            Bitboard b = pos.pieces(Us, KING);
-            Square s  = pos.square<KING>(Us); 
-            Square s1 = shift<UpRight>(b) ? s + UpRight : shift<-UpRight>(b) ? s - UpRight : SQ_NONE;
-            Square s2 = shift<UpLeft >(b) ? s + UpLeft  : shift< -UpLeft>(b) ? s - UpLeft  : SQ_NONE;
-            notBlockedCaptUR = ~pos.blockers_for_king(Us) | (s1 != SQ_NONE ? line_bb(s, s1) : 0);
-            notBlockedCaptUL = ~pos.blockers_for_king(Us) | (s2 != SQ_NONE ? line_bb(s, s2) : 0);
-        }
-
-        Bitboard b1 = shift<UpRight>(pawnsNotOn7 & notBlockedCaptUR) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsNotOn7 & notBlockedCaptUL) & enemies;
+        Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
 
         while (b1)
         {
@@ -182,13 +161,48 @@ namespace {
             if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
                 return moveList;
 
-            b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
+            b1 = (pawnsNotOn7 | blockedPawns) & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
 
             while (b1)
                 *moveList++ = make<EN_PASSANT>(pop_lsb(&b1), pos.ep_square());
         }
+    }
+
+    Square Our_ksq = pos.square<KING>(Us);
+    while(blockedPawns){
+        Square from = pop_lsb(&blockedPawns);
+        Rank r = relative_rank(Us, from);
+
+        if (r == RANK_7){
+            Bitboard b = ((pawn_attacks_bb<Us>(from) & enemies) | ((from + Up) & ~pos.pieces()));
+
+            if ((b & (from + UpRight)) && aligned(Our_ksq, from, from + UpRight))
+                moveList = make_promotions<Type, UpRight>(moveList, from + UpRight, ksq);
+            else if((b & (from + UpLeft)) && aligned(Our_ksq, from, from + UpLeft))
+                moveList = make_promotions<Type, UpLeft>(moveList, from + UpLeft, ksq);
+            else if((b & (from + Up)) && aligned(Our_ksq, from, from + Up))
+                moveList = make_promotions<Type, Up>(moveList, from + Up, ksq);
+
+            continue;
+        }
+
+        if constexpr (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS){
+            if (aligned(Our_ksq, from, from + UpRight) && (enemies & (from + UpRight)))
+                *moveList++ = make_move(from, from + UpRight);
+            if (aligned(Our_ksq, from, from +  UpLeft) && (enemies & (from +  UpLeft)))
+                *moveList++ = make_move(from, from +  UpLeft);
+        }
+        if constexpr (Type != CAPTURES)
+            if (file_of(Our_ksq) == file_of(from) && (emptySquares & (from + Up))){
+                if (Type != EVASIONS || (target & (from + Up)))
+                    *moveList++ = make_move(from, from + Up);
+
+                if (r == RANK_2 && (Type != EVASIONS || (target & (from + Up + Up))) && (emptySquares & (from + Up + Up)))
+                    *moveList++ = make_move(from, from + Up + Up);
+            }
+        
     }
 
     return moveList;
