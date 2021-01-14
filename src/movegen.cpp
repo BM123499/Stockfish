@@ -342,7 +342,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       Bitboard PromotionRank = us == WHITE ? Rank7BB : Rank2BB;
       Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us);
 
-      if((pos.ep_square() != SQ_NONE && checkerSq == pos.ep_square() - pawn_push(us)) || (defenders & pos.pieces(us) & PromotionRank)){
+      if((pos.ep_square() != SQ_NONE && checkerSq == pos.ep_square() - pawn_push(us)) || (defenders & pos.pieces(PAWN) & PromotionRank)){
           moveList = us == WHITE ? generate_pawn_moves<WHITE, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(WHITE), checkerSq) | checkerSq)
                                  : generate_pawn_moves<BLACK, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(BLACK), checkerSq) | checkerSq);
           defenders &= ~pos.pieces(PAWN);
