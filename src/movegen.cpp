@@ -335,6 +335,31 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day
 
+  Square checkerSq = lsb(pos.checkers());
+
+  // On those conditions, there is no way to avoid check by interpolating
+  if((distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT)){
+      Bitboard PromotionRank = us == WHITE ? Rank7BB : Rank2BB;
+      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us);
+
+      if((pos.ep_square() != SQ_NONE && checkerSq == pos.ep_square() - pawn_push(us)) || (defenders & pos.pieces(us) & PromotionRank)){
+          moveList = us == WHITE ? generate_pawn_moves<WHITE, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(WHITE), checkerSq) | checkerSq)
+                                 : generate_pawn_moves<BLACK, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(BLACK), checkerSq) | checkerSq);
+          defenders &= ~pos.pieces(PAWN);
+      }
+
+      while (defenders){
+          Square from = pop_lsb(&defenders);
+
+          if (ksq == from)
+            continue;
+
+          *moveList++ = make_move(from, checkerSq);
+      }
+
+      return moveList;
+  }
+
   // Generate blocking evasions or captures of the checking piece
   return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList)
                      : generate_all<BLACK, EVASIONS>(pos, moveList);
