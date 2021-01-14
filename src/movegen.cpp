@@ -304,6 +304,13 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
                      : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
 }
 
+inline Bitboard movers_to(const Position& pos, Square s){
+  return  (pawn_attacks_bb(BLACK, s)           & pos.pieces(WHITE, PAWN))
+        | (pawn_attacks_bb(WHITE, s)           & pos.pieces(BLACK, PAWN))
+        | (attacks_bb<KNIGHT>(s)               & pos.pieces(KNIGHT))
+        | (attacks_bb<  ROOK>(s, pos.pieces()) & pos.pieces(  ROOK, QUEEN))
+        | (attacks_bb<BISHOP>(s, pos.pieces()) & pos.pieces(BISHOP, QUEEN));
+}
 
 /// generate<EVASIONS> generates all pseudo-legal check evasions when the side
 /// to move is in check. Returns a pointer to the end of the move list.
@@ -332,11 +339,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return moveList; // Double check, only a king move can save the day
 
   Square checkerSq = lsb(pos.checkers());
+  Bitboard Interpolate = between_bb(checkerSq, ksq);
 
   // On those conditions, there is no way to avoid check by interpolating
-  if(distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT){
-      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us) & ~pos.pieces(KING)
-               & (line_bb(ksq, checkerSq) | ~pos.blockers_for_king(us));
+  if(!Interpolate){
+      Bitboard defenders = movers_to(pos, checkerSq) & pos.pieces(us) & ~pos.pieces(KING);
       Bitboard PromPawns = relative_rank(us, checkerSq) == RANK_8 ? defenders & pos.pieces(PAWN) : 0;
 
       if(PromPawns){
@@ -364,6 +371,23 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
           while (b)
               *moveList++ = make<EN_PASSANT>(pop_lsb(&b), pos.ep_square());
+      }
+
+      return moveList;
+  }
+  else if(3 * (distance<Square>(ksq, checkerSq) + 1) * BishopValueMg < pos.non_pawn_material(us)){
+      Bitboard movers = pos.pieces(us) & ~pos.pieces(PAWN, KING);
+      b = Interpolate | pos.checkers();
+
+      moveList = us == WHITE ? generate_pawn_moves<WHITE, EVASIONS>(pos, moveList, b) 
+                             : generate_pawn_moves<BLACK, EVASIONS>(pos, moveList, b);
+
+      while(b){
+          Square to = pop_lsb(&b);
+          Bitboard defenders = movers_to(pos, to) & movers;
+
+          while (defenders)
+              *moveList++ = make_move(pop_lsb(&defenders), to);
       }
 
       return moveList;
