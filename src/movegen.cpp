@@ -152,13 +152,9 @@ namespace {
             *moveList++ = make_move(to - UpLeft, to);
         }
 
-        if (pos.ep_square() != SQ_NONE)
+        if (Type != EVASIONS && pos.ep_square() != SQ_NONE)
         {
             assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
-
-            // An en passant capture cannot resolve a discovered check.
-            if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
-                return moveList;
 
             b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
 
@@ -338,23 +334,35 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Square checkerSq = lsb(pos.checkers());
 
   // On those conditions, there is no way to avoid check by interpolating
-  if((distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT)){
-      Bitboard PromotionRank = us == WHITE ? Rank7BB : Rank2BB;
-      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us);
+  if(distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT){
+      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us) & ~pos.pieces(KING);
+      Bitboard PromPawns = relative_rank(us, checkerSq) == RANK_8 ? defenders & pos.pieces(PAWN) : 0;
 
-      if((pos.ep_square() != SQ_NONE && checkerSq == pos.ep_square() - pawn_push(us)) || (defenders & pos.pieces(PAWN) & PromotionRank)){
-          moveList = us == WHITE ? generate_pawn_moves<WHITE, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(WHITE), checkerSq) | checkerSq)
-                                 : generate_pawn_moves<BLACK, EVASIONS>(pos, moveList, between_bb(pos.square<KING>(BLACK), checkerSq) | checkerSq);
-          defenders &= ~pos.pieces(PAWN);
+      if(PromPawns){
+          if(us == WHITE){
+              if (shift<NORTH_WEST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, NORTH_WEST>(moveList, checkerSq, pos.square<KING>(~us));
+              if (shift<NORTH_EAST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, NORTH_EAST>(moveList, checkerSq, pos.square<KING>(~us));
+          }
+          else{
+              if (shift<SOUTH_EAST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, SOUTH_EAST>(moveList, checkerSq, pos.square<KING>(~us));
+              if (shift<SOUTH_WEST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, SOUTH_WEST>(moveList, checkerSq, pos.square<KING>(~us));
+          }
+          
+          defenders ^= PromPawns;
       }
 
-      while (defenders){
-          Square from = pop_lsb(&defenders);
+      while (defenders)
+          *moveList++ = make_move(pop_lsb(&defenders), checkerSq);
 
-          if (ksq == from)
-            continue;
+      if (pos.ep_square() != SQ_NONE){
+          b = pos.pieces(us, PAWN) & pawn_attacks_bb(~us, pos.ep_square());
 
-          *moveList++ = make_move(from, checkerSq);
+          while (b)
+              *moveList++ = make<EN_PASSANT>(pop_lsb(&b), pos.ep_square());
       }
 
       return moveList;
