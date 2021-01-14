@@ -335,7 +335,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
   // On those conditions, there is no way to avoid check by interpolating
   if(distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT){
-      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us) & ~pos.pieces(KING);
+      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us) & ~pos.pieces(KING)
+               & (line_bb(ksq, checkerSq) | ~pos.blockers_for_king(us));
       Bitboard PromPawns = relative_rank(us, checkerSq) == RANK_8 ? defenders & pos.pieces(PAWN) : 0;
 
       if(PromPawns){
