@@ -154,11 +154,10 @@ namespace {
 
         if (Type != EVASIONS && pos.ep_square() != SQ_NONE)
         {
-            assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
-
             b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
+            assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
 
             while (b1)
                 *moveList++ = make<EN_PASSANT>(pop_lsb(&b1), pos.ep_square());
@@ -284,6 +283,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   assert(!pos.checkers());
 
   Color us = pos.side_to_move();
+  Square ksq = pos.square<KING>(~us);
   Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
 
   while (dc)
@@ -294,11 +294,19 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
 
      if (pt == KING)
-         b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
+         b &= ~attacks_bb<QUEEN>(ksq);
 
      while (b)
          *moveList++ = make_move(from, pop_lsb(&b));
   }
+
+  if(file_of(ksq) == FILE_F && pos.can_castle(us &  KING_SIDE) && !pos.castling_impeded(us &  KING_SIDE)
+    && !(between_bb(ksq, relative_square(us, SQ_F1)) & pos.pieces()))
+        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us &  KING_SIDE));
+
+  if(file_of(ksq) == FILE_D && pos.can_castle(us & QUEEN_SIDE) && !pos.castling_impeded(us & QUEEN_SIDE)
+    && !(between_bb(ksq, relative_square(us, SQ_D1)) & pos.pieces()))
+        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us & QUEEN_SIDE));
 
   return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
                      : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
@@ -352,7 +360,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
               if (shift<SOUTH_WEST>(PromPawns) & pos.checkers())
                   moveList = make_promotions<EVASIONS, SOUTH_WEST>(moveList, checkerSq, pos.square<KING>(~us));
           }
-          
+
           defenders ^= PromPawns;
       }
 
