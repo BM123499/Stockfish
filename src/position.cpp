@@ -571,9 +571,10 @@ bool Position::pseudo_legal(const Move m) const {
 
   // Use a slower but simpler function for uncommon cases
   switch (type_of(m)){
-      case CASTLING: return can_castle(us & ANY_CASTLING) && MoveList<LEGAL>(*this).contains(m); break;
+      case CASTLING: return can_castle(us & ANY_CASTLING) && piece_on(to) == make_piece(us, ROOK)
+                       && !(between_bb(from, to) & pieces()) && MoveList<LEGAL>(*this).contains(m); break;
       case PROMOTION: return relative_rank(us, to) == RANK_8 && MoveList<LEGAL>(*this).contains(m); break;
-      case EN_PASSANT: return ep_square() != SQ_NONE && MoveList<LEGAL>(*this).contains(m); break;
+      case EN_PASSANT: return ep_square() == to && MoveList<LEGAL>(*this).contains(m); break;
       default: break;
   }
 
