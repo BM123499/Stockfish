@@ -509,15 +509,21 @@ bool Position::legal(Move m) const {
   {
       Square ksq = square<KING>(us);
       Square capsq = to - pawn_push(us);
-      Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
       assert(to == ep_square());
       assert(moved_piece(m) == make_piece(us, PAWN));
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
+      assert(!(file_of(capsq) != file_of(ksq) && (blockers_for_king(us) & capsq))); // Unreachable
 
-      return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
-            && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
+      if (relative_rank(us, ksq) == RANK_5)
+          return !(attacks_bb<ROOK>(ksq, pieces() ^ from ^ capsq) & pieces(~us, QUEEN, ROOK));
+      else if (blockers_for_king(us) & from)
+          return     file_of(from) == file_of(ksq)
+                ?  !(attacks_bb<  ROOK>(ksq, pieces() ^ from) & pieces(~us, QUEEN, ROOK))
+                :  !(attacks_bb<BISHOP>(ksq, pieces() ^ from ^ to) & pieces(~us, QUEEN, BISHOP));
+
+      return true;
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -564,8 +570,12 @@ bool Position::pseudo_legal(const Move m) const {
   Piece pc = moved_piece(m);
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL)
-      return MoveList<LEGAL>(*this).contains(m);
+  switch (type_of(m)){
+      case CASTLING: return can_castle(us & ANY_CASTLING) && MoveList<LEGAL>(*this).contains(m); break;
+      case PROMOTION: return relative_rank(us, to) == RANK_8 && MoveList<LEGAL>(*this).contains(m); break;
+      case EN_PASSANT: return ep_square() != SQ_NONE && MoveList<LEGAL>(*this).contains(m); break;
+      default: break;
+  }
 
   // Is not a promotion, so promotion piece must be empty
   if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
