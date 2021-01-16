@@ -522,7 +522,7 @@ bool Position::legal(Move m) const {
                 :  !(attacks_bb<BISHOP>(ksq, pieces() ^ from ^ to) & pieces(~us, QUEEN, BISHOP));
       else if (relative_rank(us, ksq) == RANK_5)
           return !(attacks_bb<ROOK>(ksq, pieces() ^ from ^ capsq) & pieces(~us, QUEEN, ROOK));
-      else // Unreachable or moving piece blocks
+      else
           return true;
   }
 
