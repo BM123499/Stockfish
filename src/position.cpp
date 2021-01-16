@@ -516,14 +516,14 @@ bool Position::legal(Move m) const {
       assert(piece_on(to) == NO_PIECE);
       assert(!(file_of(capsq) != file_of(ksq) && (blockers_for_king(us) & capsq))); // Unreachable
 
-      if (relative_rank(us, ksq) == RANK_5)
-          return !(attacks_bb<ROOK>(ksq, pieces() ^ from ^ capsq) & pieces(~us, QUEEN, ROOK));
-      else if (blockers_for_king(us) & from)
+      if (blockers_for_king(us) & from)
           return     file_of(from) == file_of(ksq)
                 ?  !(attacks_bb<  ROOK>(ksq, pieces() ^ from) & pieces(~us, QUEEN, ROOK))
                 :  !(attacks_bb<BISHOP>(ksq, pieces() ^ from ^ to) & pieces(~us, QUEEN, BISHOP));
-
-      return true;
+      else if (relative_rank(us, ksq) == RANK_5)
+          return !(attacks_bb<ROOK>(ksq, pieces() ^ from ^ capsq) & pieces(~us, QUEEN, ROOK));
+      else // Unreachable or moving piece blocks
+          return true;
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -571,7 +571,8 @@ bool Position::pseudo_legal(const Move m) const {
 
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
-      return MoveList<LEGAL>(*this).contains(m);
+      return checkers() ? MoveList<    EVASIONS>(*this).contains(m) 
+                        : MoveList<NON_EVASIONS>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
   if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
