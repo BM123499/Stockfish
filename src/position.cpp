@@ -570,13 +570,8 @@ bool Position::pseudo_legal(const Move m) const {
   Piece pc = moved_piece(m);
 
   // Use a slower but simpler function for uncommon cases
-  switch (type_of(m)){
-      case CASTLING: return can_castle(us & ANY_CASTLING) && piece_on(to) == make_piece(us, ROOK)
-                       && !(between_bb(from, to) & pieces()) && MoveList<LEGAL>(*this).contains(m); break;
-      case PROMOTION: return relative_rank(us, to) == RANK_8 && MoveList<LEGAL>(*this).contains(m); break;
-      case EN_PASSANT: return ep_square() == to && MoveList<LEGAL>(*this).contains(m); break;
-      default: break;
-  }
+  if (type_of(m) != NORMAL)
+      return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
   if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
