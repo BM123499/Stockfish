@@ -552,6 +552,46 @@ bool Position::legal(Move m) const {
 }
 
 
+template<MoveType MT, Color Us>
+bool aux(const Position &pos, const Square from, const Square to, const bool Evasion){
+    constexpr Color     Them     = ~Us;
+    constexpr Direction Up       = pawn_push(Us);
+    constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
+    constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+
+    if (Evasion && more_than_one(pos.checkers()))
+        return false;
+
+    if (MT == EN_PASSANT){
+        if (Evasion && (pos.checkers() & (pos.ep_square() + Up)))
+            return false;
+
+        return pawn_attacks_bb(Them, pos.ep_square()) & from;
+    }
+
+    if (MT == PROMOTION){
+        if (relative_rank(Us, from) != RANK_7)
+            return false;
+        
+        Bitboard enemies = Evasion ? pos.checkers() : pos.pieces(Them);
+        Bitboard emptySquares = Evasion ? between_bb(pos.square<KING>(Us), lsb(pos.checkers())) : ~pos.pieces();
+
+        if (to & enemies)
+            return to == from + UpRight || to == from + UpLeft;
+        else if (to & emptySquares)
+            return to == from + Up;
+    }
+
+
+    if (MT == CASTLING && !Evasion && pos.can_castle(Us & ANY_CASTLING))
+        for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
+            if (!pos.castling_impeded(cr) && pos.can_castle(cr)
+                && to == pos.castling_rook_square(cr))
+                    return true;
+
+    return false;
+}
+
 /// Position::pseudo_legal() takes a random move and tests whether the move is
 /// pseudo legal. It is used to validate moves from TT that can be corrupted
 /// due to SMP concurrent access or hash position key aliasing.
@@ -568,32 +608,20 @@ bool Position::pseudo_legal(const Move m) const {
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
-  // Use a slower but simpler function for uncommon cases
   switch (type_of(m)){
       case NORMAL: break;
-      case CASTLING: {
-          if (checkers() || type_of(pc) != KING || piece_on(to) != make_piece(us, ROOK)
-           || promotion_type(m) != KNIGHT)
-              return false;
-
-          CastlingRights cr = us & (to > from ? KING_SIDE : QUEEN_SIDE);
-          return can_castle(cr) && !castling_impeded(cr);   
-      }
+      case CASTLING: 
+          return type_of(pc) == KING && promotion_type(m) - KNIGHT == NO_PIECE_TYPE &&
+                 (us == WHITE ? aux<  CASTLING, WHITE>(*this, from, to, (bool)checkers()) 
+                              : aux<  CASTLING, BLACK>(*this, from, to, (bool)checkers()));
       case PROMOTION:
-          if (more_than_one(checkers()) || relative_rank(us, to) != RANK_8 || type_of(pc) != PAWN 
-            || !(to == from + pawn_push(us) || (pawn_attacks_bb(us, from) & to)))
-                  return false;
-
-          if (checkers()){
-              Square checkerSq = lsb(checkers());
-              if (to != checkerSq && !(between_bb(square<KING>(us), checkerSq) & to))
-                  return false; 
-          }
-          
-          return file_of(to) == file_of(from) ? to & ~pieces() : to & pieces(~us);
+          return type_of(pc) == PAWN &&
+                 (us == WHITE ? aux< PROMOTION, WHITE>(*this, from, to, (bool)checkers()) 
+                              : aux< PROMOTION, BLACK>(*this, from, to, (bool)checkers()));
       default: //EN_PASSANT
-          return ep_square() == to && type_of(pc) == PAWN && (pawn_attacks_bb(us, from) & to)
-                 && promotion_type(m) == KNIGHT && !(checkers() & ~square_bb(to - pawn_push(us)));
+          return type_of(pc) == PAWN && promotion_type(m) - KNIGHT == NO_PIECE_TYPE &&
+                 (us == WHITE ? aux<EN_PASSANT, WHITE>(*this, from, to, (bool)checkers()) 
+                              : aux<EN_PASSANT, BLACK>(*this, from, to, (bool)checkers()));
   }
 
   // Is not a promotion, so promotion piece must be empty
