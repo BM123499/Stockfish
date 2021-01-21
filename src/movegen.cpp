@@ -250,6 +250,21 @@ namespace {
                     *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
     }
 
+    if (Type == QUIET_CHECKS && pos.can_castle(Us & ANY_CASTLING)){
+        Square ourksq   = pos.square<KING>( Us);
+        Square theirksq = pos.square<KING>(~Us);
+
+        CastlingRights cr = Us & KING_SIDE;
+        if (pos.can_castle(cr) && attacks_bb<ROOK>(relative_square(Us, SQ_F1)) & theirksq && !pos.castling_impeded(cr)
+            && attacks_bb<ROOK>(relative_square(Us, SQ_F1), pos.pieces() ^ ourksq ^ pos.castling_rook_square(cr)) & theirksq)
+                *moveList++ = make<CASTLING>(ourksq, pos.castling_rook_square(cr));
+
+        cr = Us & QUEEN_SIDE;
+        if (pos.can_castle(cr) && attacks_bb<ROOK>(relative_square(Us, SQ_D1)) & theirksq && !pos.castling_impeded(cr)
+            && attacks_bb<ROOK>(relative_square(Us, SQ_D1), pos.pieces() ^ ourksq ^ pos.castling_rook_square(cr)) & theirksq)
+                *moveList++ = make<CASTLING>(ourksq, pos.castling_rook_square(cr));
+    }
+
     return moveList;
   }
 
