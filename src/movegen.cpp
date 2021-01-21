@@ -209,7 +209,7 @@ namespace {
     Bitboard target, piecesToMove = pos.pieces(Us);
 
     if(Type == QUIET_CHECKS)
-        piecesToMove &= ~pos.blockers_for_king(~Us);
+        piecesToMove &= ~(pos.blockers_for_king(Us) | pos.blockers_for_king(~Us));
 
     switch (Type)
     {
