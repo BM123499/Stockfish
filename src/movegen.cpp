@@ -208,16 +208,8 @@ namespace {
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
     Bitboard target, piecesToMove = pos.pieces(Us);
 
-    if(Type == QUIET_CHECKS){
+    if(Type == QUIET_CHECKS)
         piecesToMove &= ~pos.blockers_for_king(~Us);
-
-        if(pos.can_castle(Us & ANY_CASTLING)){
-            Square ksq = pos.square<KING>(Us);
-            for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
-                if (!pos.castling_impeded(cr) && pos.can_castle(cr))
-                    *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
-        }
-    }
 
     switch (Type)
     {
