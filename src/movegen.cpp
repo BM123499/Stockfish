@@ -212,20 +212,10 @@ namespace {
         piecesToMove &= ~pos.blockers_for_king(~Us);
 
         if(pos.can_castle(Us & ANY_CASTLING)){
-            Square ksq = pos.square<KING>(~Us);
-
-            switch(file_of(ksq)){
-                case FILE_F:
-                    if (pos.can_castle(Us &  KING_SIDE) && !pos.castling_impeded(Us &  KING_SIDE)
-                        && !(between_bb(ksq, relative_square(Us, SQ_F1)) & pos.pieces()))
-                            *moveList++ = make<CASTLING>(pos.square<KING>(Us), pos.castling_rook_square(Us &  KING_SIDE));
-                    break;
-                case FILE_D:
-                    if (pos.can_castle(Us & QUEEN_SIDE) && !pos.castling_impeded(Us & QUEEN_SIDE)
-                        && !(between_bb(ksq, relative_square(Us, SQ_D1)) & pos.pieces()))
-                            *moveList++ = make<CASTLING>(pos.square<KING>(Us), pos.castling_rook_square(Us & QUEEN_SIDE));
-                default: break;
-            }
+            Square ksq = pos.square<KING>(Us);
+            for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
+                if (!pos.castling_impeded(cr) && pos.can_castle(cr))
+                    *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
         }
     }
 
@@ -255,12 +245,15 @@ namespace {
     moveList = generate_moves<  ROOK, Checks>(pos, moveList, piecesToMove, target);
     moveList = generate_moves< QUEEN, Checks>(pos, moveList, piecesToMove, target);
 
-    if (Type != QUIET_CHECKS && Type != EVASIONS)
+    if (Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
-        Bitboard b = attacks_bb<KING>(ksq) & target;
-        while (b)
-            *moveList++ = make_move(ksq, pop_lsb(&b));
+
+        if (Type != QUIET_CHECKS){
+            Bitboard b = attacks_bb<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(&b));
+        }
 
         if ((Type != CAPTURES) && pos.can_castle(Us & ANY_CASTLING))
             for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
