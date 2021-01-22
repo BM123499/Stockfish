@@ -209,7 +209,7 @@ namespace {
     Bitboard target, piecesToMove = pos.pieces(Us);
 
     if(Type == QUIET_CHECKS)
-        piecesToMove &= ~(pos.blockers_for_king(Us) | pos.blockers_for_king(~Us));
+        piecesToMove &= ~pos.blockers_for_king(~Us);
 
     switch (Type)
     {
@@ -290,6 +290,9 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   Color us = pos.side_to_move();
   Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
 
+  moveList = us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
+                         : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
+
   while (dc)
   {
      Square from = pop_lsb(&dc);
@@ -304,8 +307,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
          *moveList++ = make_move(from, pop_lsb(&b));
   }
 
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
+  return moveList;
 }
 
 
