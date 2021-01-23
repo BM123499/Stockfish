@@ -882,23 +882,6 @@ void Position::do_move(Move m, StateInfo& newSt, Bitboard givesCheck) {
   st->checkersBB = givesCheck;
 
   sideToMove = ~sideToMove;
-  
-  if(checkers() != (attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove))){
-      std::cout << *this << std::endl;
-      std::cout << UCI::move(m, false) << std::endl;
-      std::cout << Bitboards::pretty(checkers()) << std::endl;
-      std::cout << Bitboards::pretty(attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove)) << std::endl;
-      std::cout << Bitboards::pretty(snipers()) << std::endl;
-      std::cout << Bitboards::pretty(check_squares(BISHOP)) << std::endl;
-      std::cout << Bitboards::pretty(check_squares(ROOK)) << std::endl;
-      assert(false);
-  }
-
-  if(check_squares(QUEEN) & ~attacks_bb<QUEEN>(square<KING>(~sideToMove))){
-      std::cout << *this << std::endl;
-      std::cout << Bitboards::pretty(check_squares(QUEEN)) << std::endl;
-      assert(false);
-  }
 
   // Update king attacks used for fast check detection
   set_check_info(st);
