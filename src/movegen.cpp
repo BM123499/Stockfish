@@ -152,17 +152,12 @@ namespace {
             *moveList++ = make_move(to - UpLeft, to);
         }
 
-        if (pos.ep_square() != SQ_NONE)
+        if (Type != EVASIONS && pos.ep_square() != SQ_NONE)
         {
-            assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
-
-            // An en passant capture cannot resolve a discovered check.
-            if (Type == EVASIONS && (target & (pos.ep_square() + Up)))
-                return moveList;
-
             b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
+            assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
 
             while (b1)
                 *moveList++ = make<EN_PASSANT>(pop_lsb(&b1), pos.ep_square());
@@ -334,6 +329,44 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day
+
+  Square checkerSq = lsb(pos.checkers());
+
+  // On those conditions, there is no way to avoid check by interpolating
+  if(distance<Square>(ksq, checkerSq) == 1 || type_of(pos.piece_on(checkerSq)) == KNIGHT){
+      Bitboard defenders = pos.attackers_to(checkerSq) & pos.pieces(us) & ~pos.pieces(KING)
+               & (line_bb(ksq, checkerSq) | ~pos.blockers_for_king(us));
+      Bitboard PromPawns = relative_rank(us, checkerSq) == RANK_8 ? defenders & pos.pieces(PAWN) : 0;
+
+      if(PromPawns){
+          if(us == WHITE){
+              if (shift<NORTH_WEST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, NORTH_WEST>(moveList, checkerSq, pos.square<KING>(~us));
+              if (shift<NORTH_EAST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, NORTH_EAST>(moveList, checkerSq, pos.square<KING>(~us));
+          }
+          else{
+              if (shift<SOUTH_EAST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, SOUTH_EAST>(moveList, checkerSq, pos.square<KING>(~us));
+              if (shift<SOUTH_WEST>(PromPawns) & pos.checkers())
+                  moveList = make_promotions<EVASIONS, SOUTH_WEST>(moveList, checkerSq, pos.square<KING>(~us));
+          }
+
+          defenders ^= PromPawns;
+      }
+
+      while (defenders)
+          *moveList++ = make_move(pop_lsb(&defenders), checkerSq);
+
+      if (pos.ep_square() != SQ_NONE){
+          b = pos.pieces(us, PAWN) & pawn_attacks_bb(~us, pos.ep_square());
+
+          while (b)
+              *moveList++ = make<EN_PASSANT>(pop_lsb(&b), pos.ep_square());
+      }
+
+      return moveList;
+  }
 
   // Generate blocking evasions or captures of the checking piece
   return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList)
