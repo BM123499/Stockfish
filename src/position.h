@@ -54,6 +54,7 @@ struct StateInfo {
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
+  Bitboard   snipersBB;
   int        repetition;
 
   // Used by NNUE
@@ -110,6 +111,7 @@ public:
 
   // Checking
   Bitboard checkers() const;
+  Bitboard snipers() const;
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
@@ -125,7 +127,7 @@ public:
   bool pseudo_legal(const Move m) const;
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
-  bool gives_check(Move m) const;
+  Bitboard gives_check(Move m) const;
   bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
@@ -137,7 +139,7 @@ public:
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
-  void do_move(Move m, StateInfo& newSt, bool givesCheck);
+  void do_move(Move m, StateInfo& newSt, Bitboard givesCheck);
   void undo_move(Move m);
   void do_null_move(StateInfo& newSt);
   void undo_null_move();
@@ -290,6 +292,10 @@ inline Bitboard Position::attackers_to(Square s) const {
 
 inline Bitboard Position::checkers() const {
   return st->checkersBB;
+}
+
+inline Bitboard Position::snipers() const {
+  return st->snipersBB;
 }
 
 inline Bitboard Position::blockers_for_king(Color c) const {

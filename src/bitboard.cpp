@@ -26,6 +26,7 @@ uint8_t PopCnt16[1 << 16];
 uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
 Bitboard SquareBB[SQUARE_NB];
+Bitboard RayBB[SQUARE_NB][SQUARE_NB];
 Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
@@ -74,7 +75,7 @@ const std::string Bitboards::pretty(Bitboard b) {
 
 /// Bitboards::init() initializes various bitboard tables. It is called at
 /// startup and relies on global objects to be already zero-initialized.
-
+#include <iostream>
 void Bitboards::init() {
 
   for (unsigned i = 0; i < (1 << 16); ++i)
@@ -109,6 +110,25 @@ void Bitboards::init() {
               if (PseudoAttacks[pt][s1] & s2)
                   LineBB[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
   }
+
+  for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+      for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+          if (LineBB[s1][s2]){
+              Bitboard b;
+
+              for (Direction d : {NORTH, SOUTH, EAST, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST}) {
+                  Square s = s1;
+                  b = 0;
+                  while(safe_destination(s, d))
+                      b |= (s += d);
+
+                  if (b & s2){
+                      RayBB[s1][s2] = b;
+                      break;
+                  }
+              }
+
+          }
 }
 
 

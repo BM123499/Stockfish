@@ -325,6 +325,10 @@ void Position::set_check_info(StateInfo* si) const {
   si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq, pieces());
   si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
   si->checkSquares[KING]   = 0;
+
+  Bitboard occupancy = pieces() & ~(si->checkSquares[QUEEN]);
+  si->snipersBB = (attacks_bb<BISHOP>(ksq, occupancy) & pieces(sideToMove, BISHOP, QUEEN))
+                | (attacks_bb<  ROOK>(ksq, occupancy) & pieces(sideToMove,   ROOK, QUEEN));
 }
 
 
@@ -626,31 +630,36 @@ bool Position::pseudo_legal(const Move m) const {
 
 /// Position::gives_check() tests whether a pseudo-legal move gives a check
 
-bool Position::gives_check(Move m) const {
+Bitboard Position::gives_check(Move m) const {
 
   assert(is_ok(m));
   assert(color_of(moved_piece(m)) == sideToMove);
 
   Square from = from_sq(m);
   Square to = to_sq(m);
-
-  // Is there a direct check?
-  if (check_squares(type_of(piece_on(from))) & to)
-      return true;
-
-  // Is there a discovered check?
-  if (   (blockers_for_king(~sideToMove) & from)
-      && !aligned(from, to, square<KING>(~sideToMove)))
-      return true;
+  Square ksq = square<KING>(~sideToMove);
+  Bitboard checks = 0;
 
   switch (type_of(m))
   {
   case NORMAL:
-      return false;
+      if (   (blockers_for_king(~sideToMove) & from)
+          && !aligned(from, to, square<KING>(~sideToMove)))
+              checks = snipers() & ray_bb(ksq, from);
 
+      // Is there a direct check?
+      if (check_squares(type_of(piece_on(from))) & to)
+          checks |= to;
+
+      return checks;
   case PROMOTION:
-      return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
+      if (   (blockers_for_king(~sideToMove) & from)
+          && !aligned(from, to, square<KING>(~sideToMove)))
+          checks = snipers() & ray_bb(ksq, from);
 
+      if(attacks_bb(promotion_type(m), to, pieces() ^ from) & ksq)
+          checks |= to;
+      return checks;
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
   // need to handle is the unusual case of a discovered check through
@@ -659,9 +668,12 @@ bool Position::gives_check(Move m) const {
   {
       Square capsq = make_square(file_of(to), rank_of(from));
       Bitboard b = (pieces() ^ from ^ capsq) | to;
+      // Is there a direct check?
+      if (check_squares(type_of(piece_on(from))) & to)
+          checks = square_bb(to);
 
-      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
-            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
+      return  (attacks_bb<  ROOK>(ksq, b) & pieces(sideToMove, QUEEN, ROOK)) | checks
+            | (attacks_bb<BISHOP>(ksq, b) & pieces(sideToMove, QUEEN, BISHOP));
   }
   case CASTLING:
   {
@@ -670,8 +682,8 @@ bool Position::gives_check(Move m) const {
       Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
       Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
 
-      return   (attacks_bb<ROOK>(rto) & square<KING>(~sideToMove))
-            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
+      return   (attacks_bb<ROOK>(rto) & ksq) &&
+               (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove)) ? square_bb(rto) : 0;
   }
   default:
       assert(false);
@@ -684,7 +696,7 @@ bool Position::gives_check(Move m) const {
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
 /// moves should be filtered out before this function is called.
 
-void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
+void Position::do_move(Move m, StateInfo& newSt, Bitboard givesCheck) {
 
   assert(is_ok(m));
   assert(&newSt != st);
@@ -867,9 +879,26 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
-  st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+  st->checkersBB = givesCheck;
 
   sideToMove = ~sideToMove;
+  
+  if(checkers() != (attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove))){
+      std::cout << *this << std::endl;
+      std::cout << UCI::move(m, false) << std::endl;
+      std::cout << Bitboards::pretty(checkers()) << std::endl;
+      std::cout << Bitboards::pretty(attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove)) << std::endl;
+      std::cout << Bitboards::pretty(snipers()) << std::endl;
+      std::cout << Bitboards::pretty(check_squares(BISHOP)) << std::endl;
+      std::cout << Bitboards::pretty(check_squares(ROOK)) << std::endl;
+      assert(false);
+  }
+
+  if(check_squares(QUEEN) & ~attacks_bb<QUEEN>(square<KING>(~sideToMove))){
+      std::cout << *this << std::endl;
+      std::cout << Bitboards::pretty(check_squares(QUEEN)) << std::endl;
+      assert(false);
+  }
 
   // Update king attacks used for fast check detection
   set_check_info(st);
