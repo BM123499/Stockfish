@@ -75,7 +75,7 @@ const std::string Bitboards::pretty(Bitboard b) {
 
 /// Bitboards::init() initializes various bitboard tables. It is called at
 /// startup and relies on global objects to be already zero-initialized.
-#include <iostream>
+
 void Bitboards::init() {
 
   for (unsigned i = 0; i < (1 << 16); ++i)
