@@ -627,13 +627,63 @@ bool Position::pseudo_legal(const Move m) const {
   return true;
 }
 
-
 /// Position::gives_check() tests whether a pseudo-legal move gives a check
-
-Bitboard Position::gives_check(Move m) const {
+bool Position::gives_check(Move m) const {
 
   assert(is_ok(m));
   assert(color_of(moved_piece(m)) == sideToMove);
+
+  Square from = from_sq(m);
+  Square to = to_sq(m);
+
+  // Is there a direct check?
+  if (check_squares(type_of(piece_on(from))) & to)
+      return true;
+
+  // Is there a discovered check?
+  if (   (blockers_for_king(~sideToMove) & from)
+      && !aligned(from, to, square<KING>(~sideToMove)))
+      return true;
+
+  switch (type_of(m))
+  {
+  case NORMAL:
+      return false;
+
+  case PROMOTION:
+      return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
+
+  // En passant capture with check? We have already handled the case
+  // of direct checks and ordinary discovered check, so the only case we
+  // need to handle is the unusual case of a discovered check through
+  // the captured pawn.
+  case EN_PASSANT:
+  {
+      Square capsq = make_square(file_of(to), rank_of(from));
+      Bitboard b = (pieces() ^ from ^ capsq) | to;
+
+      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
+            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
+  }
+  case CASTLING:
+  {
+      Square kfrom = from;
+      Square rfrom = to; // Castling is encoded as 'king captures the rook'
+      Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
+      Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
+
+      return   (attacks_bb<ROOK>(rto) & square<KING>(~sideToMove))
+            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
+  }
+  default:
+      assert(false);
+      return false;
+  }
+}
+
+Bitboard Position::checking(Move m, StateInfo* si) const {
+
+  assert(is_ok(m));
 
   Square from = from_sq(m);
   Square to = to_sq(m);
@@ -643,22 +693,23 @@ Bitboard Position::gives_check(Move m) const {
   switch (type_of(m))
   {
   case NORMAL:
-      if (   (blockers_for_king(~sideToMove) & from)
-          && !aligned(from, to, square<KING>(~sideToMove)))
-              checks = snipers() & ray_bb(ksq, from);
+      if (   (si->blockersForKing[~sideToMove] & from)
+          && !aligned(from, to, ksq))
+              checks = si->snipersBB & ray_bb(ksq, from);
 
       // Is there a direct check?
-      if (check_squares(type_of(piece_on(from))) & to)
+      if (si->checkSquares[type_of(piece_on(to))] & to)
           checks |= to;
 
       return checks;
   case PROMOTION:
-      if (   (blockers_for_king(~sideToMove) & from)
-          && !aligned(from, to, square<KING>(~sideToMove)))
-          checks = snipers() & ray_bb(ksq, from);
+      if (   (si->blockersForKing[~sideToMove] & from)
+          && !aligned(from, to, ksq))
+              checks = si->snipersBB & ray_bb(ksq, from);
 
-      if(attacks_bb(promotion_type(m), to, pieces() ^ from) & ksq)
+      if(attacks_bb(promotion_type(m), to, pieces()) & ksq)
           checks |= to;
+
       return checks;
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -666,24 +717,18 @@ Bitboard Position::gives_check(Move m) const {
   // the captured pawn.
   case EN_PASSANT:
   {
-      Square capsq = make_square(file_of(to), rank_of(from));
-      Bitboard b = (pieces() ^ from ^ capsq) | to;
       // Is there a direct check?
-      if (check_squares(type_of(piece_on(from))) & to)
+      if (si->checkSquares[PAWN] & to)
           checks = square_bb(to);
 
-      return  (attacks_bb<  ROOK>(ksq, b) & pieces(sideToMove, QUEEN, ROOK)) | checks
-            | (attacks_bb<BISHOP>(ksq, b) & pieces(sideToMove, QUEEN, BISHOP));
+      return  (attacks_bb<  ROOK>(ksq, pieces()) & pieces(sideToMove, QUEEN, ROOK)) | checks
+            | (attacks_bb<BISHOP>(ksq, pieces()) & pieces(sideToMove, QUEEN, BISHOP));
   }
   case CASTLING:
   {
-      Square kfrom = from;
-      Square rfrom = to; // Castling is encoded as 'king captures the rook'
-      Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
-      Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
+      Square rto = relative_square(sideToMove, to > from ? SQ_F1 : SQ_D1);
 
-      return   (attacks_bb<ROOK>(rto) & ksq) &&
-               (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove)) ? square_bb(rto) : 0;
+      return square_bb(rto);
   }
   default:
       assert(false);
@@ -696,7 +741,7 @@ Bitboard Position::gives_check(Move m) const {
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
 /// moves should be filtered out before this function is called.
 
-void Position::do_move(Move m, StateInfo& newSt, Bitboard givesCheck) {
+void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   assert(is_ok(m));
   assert(&newSt != st);
@@ -879,7 +924,7 @@ void Position::do_move(Move m, StateInfo& newSt, Bitboard givesCheck) {
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
-  st->checkersBB = givesCheck;
+  st->checkersBB = givesCheck ? checking(m, newSt.previous) : 0;
 
   sideToMove = ~sideToMove;
 

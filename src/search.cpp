@@ -606,7 +606,6 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning,
          ttCapture, singularQuietLMR;
     Piece movedPiece;
-    Bitboard GC;
     int moveCount, captureCount, quietCount;
 
     // Step 1. Initialize node
@@ -1024,8 +1023,7 @@ moves_loop: // When in check, search starts from here
       extension = 0;
       captureOrPromotion = pos.capture_or_promotion(move);
       movedPiece = pos.moved_piece(move);
-      GC = pos.gives_check(move);
-      givesCheck = (bool)GC;
+      givesCheck = pos.gives_check(move);
 
       // Calculate new depth for this move
       newDepth = depth - 1;
@@ -1151,7 +1149,7 @@ moves_loop: // When in check, search starts from here
                                                                 [to_sq(move)];
 
       // Step 14. Make the move
-      pos.do_move(move, st, GC);
+      pos.do_move(move, st, givesCheck);
 
       // Step 15. Reduced depth search (LMR, ~200 Elo). If the move fails high it will be
       // re-searched at full depth.
@@ -1435,7 +1433,6 @@ moves_loop: // When in check, search starts from here
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool pvHit, givesCheck, captureOrPromotion;
-    Bitboard GC;
     int moveCount;
 
     if (PvNode)
@@ -1539,8 +1536,7 @@ moves_loop: // When in check, search starts from here
     {
       assert(is_ok(move));
 
-      GC = pos.gives_check(move);
-      givesCheck = (bool)GC;
+      givesCheck = pos.gives_check(move);
       captureOrPromotion = pos.capture_or_promotion(move);
 
       moveCount++;
@@ -1601,7 +1597,7 @@ moves_loop: // When in check, search starts from here
           continue;
 
       // Make and search the move
-      pos.do_move(move, st, GC);
+      pos.do_move(move, st, givesCheck);
       value = -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
       pos.undo_move(move);
 

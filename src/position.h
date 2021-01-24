@@ -127,7 +127,8 @@ public:
   bool pseudo_legal(const Move m) const;
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
-  Bitboard gives_check(Move m) const;
+  bool gives_check(Move m) const;
+  Bitboard checking(Move m, StateInfo* si) const;
   bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
@@ -139,7 +140,7 @@ public:
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
-  void do_move(Move m, StateInfo& newSt, Bitboard givesCheck);
+  void do_move(Move m, StateInfo& newSt, bool givesCheck);
   void undo_move(Move m);
   void do_null_move(StateInfo& newSt);
   void undo_null_move();
