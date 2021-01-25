@@ -564,12 +564,8 @@ bool Position::pseudo_legal(const Move m) const {
   Piece pc = moved_piece(m);
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL)
+  if (type_of(m) != NORMAL && type_of(m) != PROMOTION)
       return MoveList<LEGAL>(*this).contains(m);
-
-  // Is not a promotion, so promotion piece must be empty
-  if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
-      return false;
 
   // If the 'from' square is not occupied by a piece belonging to the side to
   // move, the move is obviously not legal.
@@ -583,9 +579,11 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the special case of a pawn move
   if (type_of(pc) == PAWN)
   {
-      // We have already handled promotion moves, so destination
-      // cannot be on the 8th/1st rank.
-      if ((Rank8BB | Rank1BB) & to)
+      if((type_of(m) == PROMOTION) ^ (bool)((Rank8BB | Rank1BB) & to))
+          return false;
+
+      // Is not a promotion, so promotion piece must be empty
+      if (type_of(m) != PROMOTION && promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
           return false;
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
@@ -596,7 +594,9 @@ bool Position::pseudo_legal(const Move m) const {
                && empty(to - pawn_push(us))))
           return false;
   }
-  else if (!(attacks_bb(type_of(pc), from, pieces()) & to))
+  // Is not a promotion, so promotion piece must be empty
+  else if  (promotion_type(m) - KNIGHT != NO_PIECE_TYPE 
+       || !(attacks_bb(type_of(pc), from, pieces()) & to))
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves
