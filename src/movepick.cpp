@@ -90,6 +90,11 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
+int w[2] = {
+    0, 0
+};
+TUNE(SetRange(-640, 640), w);
+
 /// MovePicker::score() assigns a numerical value to each move in a list, used
 /// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
 /// captures with a good history. Quiets moves are ordered using the histories.
@@ -99,19 +104,21 @@ void MovePicker::score() {
   static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
   for (auto& m : *this)
-      if (Type == CAPTURES)
+      if constexpr (Type == CAPTURES)
           m.value =  int(PieceValue[MG][pos.piece_on(to_sq(m))]) * 6
                    + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
-      else if (Type == QUIETS)
-          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
-                   + (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0);
+      else if constexpr (Type == QUIETS)
+          m.value =                 (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   +            2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                   +                (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
+                   + (w[0]/128.0) * (*continuationHistory[2])[pos.moved_piece(m)][to_sq(m)]
+                   +                (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
+                   + (w[1]/128.0) * (*continuationHistory[4])[pos.moved_piece(m)][to_sq(m)]
+                   +                (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
+                   +                (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0);
 
-      else // Type == EVASIONS
+      else // if constexpr (Type == EVASIONS)
       {
           if (pos.capture(m))
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
