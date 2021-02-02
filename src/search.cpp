@@ -1749,9 +1749,9 @@ moves_loop: // When in check, search starts from here
   // update_continuation_histories() updates histories of the move pairs formed
   // by moves at ply -1, -2, -4, and -6 with current move.
 int Tw[6] = {
-    128, 128, 0, 128, 0, 128
+    128, 96, 64, 96, 64, 64
 };
-TUNE(SetRange(-320, 640), Tw);
+TUNE(SetRange(-64, 384), Tw);
 
   void update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus) {
 
