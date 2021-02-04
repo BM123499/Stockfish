@@ -291,6 +291,14 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   Square ksq = pos.square<KING>(~us);
   Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
 
+  if(file_of(ksq) == FILE_F && pos.can_castle(us &  KING_SIDE) && !pos.castling_impeded(us &  KING_SIDE)
+    && !(between_bb(ksq, relative_square(us, SQ_F1)) & pos.pieces()))
+        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us &  KING_SIDE));
+
+  if(file_of(ksq) == FILE_D && pos.can_castle(us & QUEEN_SIDE) && !pos.castling_impeded(us & QUEEN_SIDE)
+    && !(between_bb(ksq, relative_square(us, SQ_D1)) & pos.pieces()))
+        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us & QUEEN_SIDE));
+
   while (dc)
   {
      Square from = pop_lsb(&dc);
@@ -304,14 +312,6 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      while (b)
          *moveList++ = make_move(from, pop_lsb(&b));
   }
-
-  if(file_of(ksq) == FILE_F && pos.can_castle(us &  KING_SIDE) && !pos.castling_impeded(us &  KING_SIDE)
-    && !(between_bb(ksq, relative_square(us, SQ_F1)) & pos.pieces()))
-        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us &  KING_SIDE));
-
-  if(file_of(ksq) == FILE_D && pos.can_castle(us & QUEEN_SIDE) && !pos.castling_impeded(us & QUEEN_SIDE)
-    && !(between_bb(ksq, relative_square(us, SQ_D1)) & pos.pieces()))
-        *moveList++ = make<CASTLING>(pos.square<KING>(us), pos.castling_rook_square(us & QUEEN_SIDE));
 
   return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
                      : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
