@@ -36,12 +36,18 @@
 #include "syzygy/tbprobe.h"
 
 int Tc[20] = {
-    22988,   29,    27,   87,   172, 1053,  76, 203,
-      189,   47,   246,  156, 26394, 5521,   93, 104, 126,
-      134, 4288, 15082
+    22858,   30,    32,  169,   166, 1001,   83, 189,
+      215,   41,   192,  161, 26197, 5328,  100, 111, 109,
+      103, 4447, 14678
 };
 
+int Tw0 = 29, Tw1 = 8, Tw2 = 224, Tw3 = 215;
+
 TUNE(Tc);
+TUNE(SetRange( -64, 384), Tw0);
+TUNE(SetRange(   1,  17), Tw1);
+TUNE(SetRange(   0, 640), Tw2);
+TUNE(SetRange(-128, 512), Tw3);
 
 namespace Search {
 
@@ -89,7 +95,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 14 ? 29 : 8 * d * d + 224 * d - 215;
+    return d > 14 ? Tw0 : Tw1 * d * d + Tw2 * d - Tw3;
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -1719,8 +1725,8 @@ moves_loop: // When in check, search starts from here
     PieceType captured = type_of(pos.piece_on(to_sq(bestMove)));
 
     bonus1 = stat_bonus(depth + 1);
-    bonus2 = bestValue > beta + PawnValueMg ? bonus1               // larger bonus
-                                            : stat_bonus(depth);   // smaller bonus
+    bonus2 = bestValue > beta + PawnValueMg ? bonus1                                 // larger bonus
+                                            : std::min(bonus1, stat_bonus(depth));   // smaller bonus
 
     if (!pos.capture_or_promotion(bestMove))
     {
