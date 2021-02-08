@@ -90,6 +90,12 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
+int Tc[5] = {256, 128, 128, 128, 256};
+int Tw[24] = {};
+
+TUNE(Tc);
+TUNE(SetRange(-320, 320), Tw);
+
 /// MovePicker::score() assigns a numerical value to each move in a list, used
 /// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
 /// captures with a good history. Quiets moves are ordered using the histories.
@@ -98,17 +104,34 @@ void MovePicker::score() {
 
   static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
+  [[maybe_unused]] Color us = pos.side_to_move();
+
   for (auto& m : *this)
       if (Type == CAPTURES)
           m.value =  int(PieceValue[MG][pos.piece_on(to_sq(m))]) * 6
                    + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if (Type == QUIETS)
-          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
+          m.value =                  (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   + (Tc[0]/128.0) * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                   + (Tc[1]/128.0) * (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
+                   + (Tc[2]/128.0) * (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
+                   + (Tc[3]/128.0) * (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
+
+                   + (Tw[ 0]/128.0) * (*continuationHistory[0])[make_piece( us,   PAWN)][to_sq(m)]
+                   + (Tw[ 1]/128.0) * (*continuationHistory[0])[make_piece( us, KNIGHT)][to_sq(m)]
+                   + (Tw[ 2]/128.0) * (*continuationHistory[0])[make_piece( us, BISHOP)][to_sq(m)]
+                   + (Tw[ 3]/128.0) * (*continuationHistory[0])[make_piece( us,   ROOK)][to_sq(m)]
+                   + (Tw[ 4]/128.0) * (*continuationHistory[0])[make_piece( us,  QUEEN)][to_sq(m)]
+                   + (Tw[ 5]/128.0) * (*continuationHistory[0])[make_piece( us,   KING)][to_sq(m)]
+
+                   + (Tw[ 6]/128.0) * (*continuationHistory[0])[make_piece(~us,   PAWN)][to_sq(m)]
+                   + (Tw[ 7]/128.0) * (*continuationHistory[0])[make_piece(~us, KNIGHT)][to_sq(m)]
+                   + (Tw[ 8]/128.0) * (*continuationHistory[0])[make_piece(~us, BISHOP)][to_sq(m)]
+                   + (Tw[ 9]/128.0) * (*continuationHistory[0])[make_piece(~us,   ROOK)][to_sq(m)]
+                   + (Tw[10]/128.0) * (*continuationHistory[0])[make_piece(~us,  QUEEN)][to_sq(m)]
+                   + (Tw[11]/128.0) * (*continuationHistory[0])[make_piece(~us,   KING)][to_sq(m)]
+
                    + (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0);
 
       else // Type == EVASIONS
@@ -117,8 +140,23 @@ void MovePicker::score() {
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
                        - Value(type_of(pos.moved_piece(m)));
           else
-              m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                       + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+              m.value =                  (*mainHistory)[pos.side_to_move()][from_to(m)]
+                       + (Tc[4]/128.0) * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+
+                       + (Tw[12]/128.0) * (*continuationHistory[0])[make_piece( us,   PAWN)][to_sq(m)]
+                       + (Tw[13]/128.0) * (*continuationHistory[0])[make_piece( us, KNIGHT)][to_sq(m)]
+                       + (Tw[14]/128.0) * (*continuationHistory[0])[make_piece( us, BISHOP)][to_sq(m)]
+                       + (Tw[15]/128.0) * (*continuationHistory[0])[make_piece( us,   ROOK)][to_sq(m)]
+                       + (Tw[16]/128.0) * (*continuationHistory[0])[make_piece( us,  QUEEN)][to_sq(m)]
+                       + (Tw[17]/128.0) * (*continuationHistory[0])[make_piece( us,   KING)][to_sq(m)]
+
+                       + (Tw[18]/128.0) * (*continuationHistory[0])[make_piece(~us,   PAWN)][to_sq(m)]
+                       + (Tw[19]/128.0) * (*continuationHistory[0])[make_piece(~us, KNIGHT)][to_sq(m)]
+                       + (Tw[20]/128.0) * (*continuationHistory[0])[make_piece(~us, BISHOP)][to_sq(m)]
+                       + (Tw[21]/128.0) * (*continuationHistory[0])[make_piece(~us,   ROOK)][to_sq(m)]
+                       + (Tw[22]/128.0) * (*continuationHistory[0])[make_piece(~us,  QUEEN)][to_sq(m)]
+                       + (Tw[23]/128.0) * (*continuationHistory[0])[make_piece(~us,   KING)][to_sq(m)]
+
                        - (1 << 28);
       }
 }
