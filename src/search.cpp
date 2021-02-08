@@ -41,11 +41,10 @@ int Tc[20] = {
       103, 4447, 14678
 };
 
-int Tw0 = 29, Tw1 = 8, Tw2 = 224, Tw3 = 215;
+int Tw0 = 29, Tw2 = 224, Tw3 = 215;
 
 TUNE(Tc);
 TUNE(SetRange( -64, 384), Tw0);
-TUNE(SetRange(   1,  17), Tw1);
 TUNE(SetRange(   0, 640), Tw2);
 TUNE(SetRange(-128, 512), Tw3);
 
@@ -95,7 +94,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 14 ? Tw0 : Tw1 * d * d + Tw2 * d - Tw3;
+    return d > 14 ? Tw0 : 8 * d * d + Tw2 * d - Tw3;
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
