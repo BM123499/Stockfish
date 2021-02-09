@@ -96,7 +96,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
 template<GenType Type>
 void MovePicker::score() {
 
-  static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
+  static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS || Type == QUIET_CHECKS, "Wrong type");
 
   for (auto& m : *this)
       if (Type == CAPTURES)
@@ -111,7 +111,7 @@ void MovePicker::score() {
                    +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
                    + (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0);
 
-      else // Type == EVASIONS
+      else if (Type == EVASIONS)
       {
           if (pos.capture(m))
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
@@ -121,6 +121,8 @@ void MovePicker::score() {
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                        - (1 << 28);
       }
+      else // Type == QUIET_CHECK
+          m.value = -(*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.
@@ -253,11 +255,12 @@ top:
       cur = moves;
       endMoves = generate<QUIET_CHECKS>(pos, cur);
 
+      score<QUIET_CHECKS>();
       ++stage;
       [[fallthrough]];
 
   case QCHECK:
-      return select<Next>([](){ return true; });
+      return select<Best>([](){ return true; });
   }
 
   assert(false);
