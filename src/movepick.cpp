@@ -90,8 +90,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
-int Tw[3] = {0, 85, -80};
-TUNE(SetRange(-256, 256), Tw);
+int Tw[3] = {0, 155, -181};
+TUNE(SetRange(-512, 512), Tw);
 
 /// MovePicker::score() assigns a numerical value to each move in a list, used
 /// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
@@ -126,7 +126,7 @@ void MovePicker::score() {
       }
       else // Type == QUIET_CHECK
           m.value = +  (Tw[0]/128.0) * (*mainHistory)[pos.side_to_move()][from_to(m)]
-                    -                  (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                    -              2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                     +  (Tw[1]/128.0) * (*continuationHistory[0])[make_piece( pos.side_to_move(), KING)][to_sq(m)]
                     +  (Tw[2]/128.0) * (*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
 }
