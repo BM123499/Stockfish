@@ -124,7 +124,7 @@ void MovePicker::score() {
       else // Type == QUIET_CHECK
           m.value = - 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                     +     (*continuationHistory[0])[make_piece( pos.side_to_move(), KING)][to_sq(m)]
-                    - 2 * (*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
+                    -     (*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.
