@@ -90,6 +90,9 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
+int Tw[3] = {0, 0, 0};
+TUNE(SetRange(-256, 256), Tw);
+
 /// MovePicker::score() assigns a numerical value to each move in a list, used
 /// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
 /// captures with a good history. Quiets moves are ordered using the histories.
@@ -122,7 +125,9 @@ void MovePicker::score() {
                        - (1 << 28);
       }
       else // Type == QUIET_CHECK
-          m.value = -(*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
+          m.value =    (Tw[0]/128.0) * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                    +  (Tw[1]/128.0) * (*continuationHistory[0])[make_piece( pos.side_to_move(), KING)][to_sq(m)]
+                    +  (Tw[2]/128.0) * (*continuationHistory[0])[make_piece(~pos.side_to_move(), KING)][to_sq(m)];
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.
