@@ -90,7 +90,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
-int Tw[3] = {0, 155, -181};
+int Tw[3] = {50, 164, -207};
 TUNE(SetRange(-512, 512), Tw);
 
 /// MovePicker::score() assigns a numerical value to each move in a list, used
