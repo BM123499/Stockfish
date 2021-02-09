@@ -35,6 +35,19 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
+int Tc[20] = {
+    22858,   30,    32,  169,   166, 1001,   83, 189,
+      215,   41,   192,  161, 26197, 5328,  100, 111, 109,
+      103, 4447, 14678
+};
+
+int Tw0 = 29, Tw2 = 224, Tw3 = 215;
+
+TUNE(Tc);
+TUNE(SetRange( -64, 384), Tw0);
+TUNE(SetRange(   0, 640), Tw2);
+TUNE(SetRange(-128, 512), Tw3);
+
 namespace Search {
 
   LimitsType Limits;
@@ -81,7 +94,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 14 ? 66 : 6 * d * d + 231 * d - 206;
+    return d > 14 ? Tw0 : 8 * d * d + Tw2 * d - Tw3;
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -839,10 +852,10 @@ namespace {
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 22661
+        && (ss-1)->statScore < Tc[0]
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 24 * depth - 34 * improving + 162 * ss->ttPv + 159
+        &&  ss->staticEval >= beta - Tc[1] * depth - Tc[2] * improving + Tc[3] * ss->ttPv + Tc[4]
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
@@ -850,7 +863,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (1062 + 68 * depth) / 256 + std::min(int(eval - beta) / 190, 3);
+        Depth R = (Tc[5] + Tc[6] * depth) / 256 + std::min(int(eval - beta) / Tc[7], 3);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
@@ -886,7 +899,7 @@ namespace {
         }
     }
 
-    probCutBeta = beta + 209 - 44 * improving;
+    probCutBeta = beta + Tc[8] - Tc[9] * improving;
 
     // Step 9. ProbCut (~10 Elo)
     // If we have a good enough capture and a reduced search returns a value
@@ -1063,11 +1076,11 @@ moves_loop: // When in check, search starts from here
               // Futility pruning: parent node (~5 Elo)
               if (   lmrDepth < 7
                   && !ss->inCheck
-                  && ss->staticEval + 174 + 157 * lmrDepth <= alpha
+                  && ss->staticEval + Tc[10] + Tc[11] * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
                     + (*contHist[3])[movedPiece][to_sq(move)]
-                    + (*contHist[5])[movedPiece][to_sq(move)] / 3 < 26237)
+                    + (*contHist[5])[movedPiece][to_sq(move)] / 3 < Tc[12])
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
@@ -1223,13 +1236,13 @@ moves_loop: // When in check, search starts from here
                              + (*contHist[0])[movedPiece][to_sq(move)]
                              + (*contHist[1])[movedPiece][to_sq(move)]
                              + (*contHist[3])[movedPiece][to_sq(move)]
-                             - 5337;
+                             - Tc[13];
 
               // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
-              if (ss->statScore >= -89 && (ss-1)->statScore < -116)
+              if (ss->statScore >= -Tc[14] && (ss-1)->statScore < -Tc[15])
                   r--;
 
-              else if ((ss-1)->statScore >= -112 && ss->statScore < -100)
+              else if ((ss-1)->statScore >= -Tc[16] && ss->statScore < -Tc[17])
                   r++;
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
@@ -1237,9 +1250,9 @@ moves_loop: // When in check, search starts from here
               // use sum of main history and first continuation history with an offset
               if (ss->inCheck)
                   r -= (thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)] - 4341) / 16384;
+                     + (*contHist[0])[movedPiece][to_sq(move)] - Tc[18]) / 16384;
               else
-                  r -= ss->statScore / 14382;
+                  r -= ss->statScore / Tc[19];
           }
 
           Depth d = std::clamp(newDepth - r, 1, newDepth);
