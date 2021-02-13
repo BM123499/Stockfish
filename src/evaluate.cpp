@@ -185,14 +185,17 @@ namespace Trace {
 
 using namespace Trace;
 
+Value NNUEThreshold1 = Value(682);
+Value NNUEThreshold2 = Value(176);
+TUNE(SetRange(400, 900), NNUEThreshold1);
+TUNE(SetRange( 50, 300), NNUEThreshold2);
+
 namespace {
 
   // Threshold for lazy and space evaluation
   constexpr Value LazyThreshold1 =  Value(1565);
   constexpr Value LazyThreshold2 =  Value(1102);
   constexpr Value SpaceThreshold = Value(11551);
-  constexpr Value NNUEThreshold1 =   Value(682);
-  constexpr Value NNUEThreshold2 =   Value(176);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10 };
@@ -1043,6 +1046,11 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
+int Tw0 = 252, Tw1 = 20512, Tw2 = 128;
+TUNE(SetRange(    0,   378), Tw0);
+TUNE(SetRange(16000, 25600), Tw1);
+TUNE(SetRange(    0,   256), Tw2);
+
 Value Eval::evaluate(const Position& pos) {
 
   Value v;
@@ -1053,8 +1061,8 @@ Value Eval::evaluate(const Position& pos) {
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
-         int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (641 + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
+         int mat = pos.non_pawn_material() + Tw0 * pos.count<PAWN>();
+         return NNUE::evaluate(pos) * (Tw1 + mat - Tw2 * pos.rule50_count()) / 32768 + Tempo;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
