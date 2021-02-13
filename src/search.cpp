@@ -54,6 +54,16 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int Tc[8] = {
+    200, 100, 30, 18, 432, 537, 210, 155
+};
+int Tw0 = 234, Tw1 = 503, Tw2 = 903;
+
+TUNE(Tc);
+TUNE(SetRange(150,  350), Tw0);
+TUNE(SetRange(400,  600), Tw1);
+TUNE(SetRange(750, 1050), Tw2);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -64,7 +74,7 @@ namespace {
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
-    return Value(234 * (d - improving));
+    return Value(Tw0 * (d - improving));
   }
 
   // Reductions lookup table, initialized at startup
@@ -72,7 +82,7 @@ namespace {
 
   Depth reduction(bool i, Depth d, int mn) {
     int r = Reductions[d] * Reductions[mn];
-    return (r + 503) / 1024 + (!i && r > 915);
+    return (r + Tw1) / 1024 + (!i && r > Tw2);
   }
 
   constexpr int futility_move_count(bool improving, Depth depth) {
@@ -1030,7 +1040,7 @@ moves_loop: // When in check, search starts from here
       bool likelyFailLow =    PvNode 
                            && ttMove 
                            && (tte->bound() & BOUND_UPPER) 
-                           && ttValue < alpha + 200 + 100 * depth 
+                           && ttValue < alpha + Tc[0] + Tc[1] * depth 
                            && tte->depth() >= depth;
 
       // Calculate new depth for this move
@@ -1079,7 +1089,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
-              if (!pos.see_ge(move, Value(-(30 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
+              if (!pos.see_ge(move, Value(-(Tc[2] - std::min(lmrDepth, Tc[3])) * lmrDepth * lmrDepth)))
                   continue;
           }
       }
@@ -1168,12 +1178,12 @@ moves_loop: // When in check, search starts from here
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
               || (!PvNode && !formerPv && captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())] < 4506)
-              || thisThread->ttHitAverage < 432 * TtHitAverageResolution * TtHitAverageWindow / 1024))
+              || thisThread->ttHitAverage < Tc[4] * TtHitAverageResolution * TtHitAverageWindow / 1024))
       {
           Depth r = reduction(improving, depth, moveCount);
 
           // Decrease reduction if the ttHit running average is large
-          if (thisThread->ttHitAverage > 537 * TtHitAverageResolution * TtHitAverageWindow / 1024)
+          if (thisThread->ttHitAverage > Tc[5] * TtHitAverageResolution * TtHitAverageWindow / 1024)
               r--;
 
           // Increase reduction if other threads are searching this position
@@ -1205,7 +1215,7 @@ moves_loop: // When in check, search starts from here
           {
               // Unless giving check, this capture is likely bad
               if (   !givesCheck
-                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 210 * depth <= alpha)
+                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + Tc[6] * depth <= alpha)
                   r++;
           }
           else
@@ -1524,7 +1534,7 @@ moves_loop: // When in check, search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = bestValue + 155;
+        futilityBase = bestValue + Tc[7];
     }
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
