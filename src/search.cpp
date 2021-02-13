@@ -54,8 +54,8 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-int Tc[8] = {
-    200, 100, 30, 4506, 432, 537, 210, 155
+int Tc[9] = {
+    200, 100, 218, 30, 4506, 432, 537, 210, 155
 };
 int Tw0 = 234, Tw1 = 503, Tw2 = 903;
 
@@ -1067,7 +1067,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // SEE based pruning
-              if (!pos.see_ge(move, Value(-218) * depth)) // (~25 Elo)
+              if (!pos.see_ge(move, Value(-Tc[2]) * depth)) // (~25 Elo)
                   continue;
           }
           else
@@ -1089,7 +1089,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
-              if (!pos.see_ge(move, Value(-(Tc[2] - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
+              if (!pos.see_ge(move, Value(-(Tc[3] - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
                   continue;
           }
       }
@@ -1177,13 +1177,13 @@ moves_loop: // When in check, search starts from here
               || moveCountPruning
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
-              || (!PvNode && !formerPv && captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())] < Tc[3])
-              || thisThread->ttHitAverage < Tc[4] * TtHitAverageResolution * TtHitAverageWindow / 1024))
+              || (!PvNode && !formerPv && captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())] < Tc[4])
+              || thisThread->ttHitAverage < Tc[5] * TtHitAverageResolution * TtHitAverageWindow / 1024))
       {
           Depth r = reduction(improving, depth, moveCount);
 
           // Decrease reduction if the ttHit running average is large
-          if (thisThread->ttHitAverage > Tc[5] * TtHitAverageResolution * TtHitAverageWindow / 1024)
+          if (thisThread->ttHitAverage > Tc[6] * TtHitAverageResolution * TtHitAverageWindow / 1024)
               r--;
 
           // Increase reduction if other threads are searching this position
@@ -1215,7 +1215,7 @@ moves_loop: // When in check, search starts from here
           {
               // Unless giving check, this capture is likely bad
               if (   !givesCheck
-                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + Tc[6] * depth <= alpha)
+                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + Tc[7] * depth <= alpha)
                   r++;
           }
           else
@@ -1534,7 +1534,7 @@ moves_loop: // When in check, search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = bestValue + Tc[7];
+        futilityBase = bestValue + Tc[8];
     }
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
