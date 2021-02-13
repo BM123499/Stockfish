@@ -1047,7 +1047,7 @@ make_v:
 /// evaluation of the position from the point of view of the side to move.
 
 int Tw0 = 252, Tw1 = 20512, Tw2 = 128;
-TUNE(SetRange(    0,   378), Tw0);
+TUNE(SetRange(    0,   504), Tw0);
 TUNE(SetRange(16000, 25600), Tw1);
 TUNE(SetRange(    0,   256), Tw2);
 
