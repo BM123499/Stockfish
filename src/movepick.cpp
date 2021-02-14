@@ -239,9 +239,9 @@ top:
 
   case QCAPTURE:
       if (select<Best>([&](){ return    type_of(*cur) == PROMOTION
-                                        ||  ((depth > DEPTH_QS_RECAPTURES
-                                            || to_sq(*cur) == recaptureSquare)
-                                        && pos.see_ge(*cur, Value(-69 * cur->value / 1024))); }))
+                                  ||  ((depth > DEPTH_QS_RECAPTURES
+                                        || to_sq(*cur) == recaptureSquare)
+                                  && pos.see_ge(*cur, Value(-69 * cur->value / 1024))); }))
           return *(cur - 1);
 
       // If we did not find any move and we do not try checks, we have finished
