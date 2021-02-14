@@ -668,18 +668,9 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove == MOVE_NONE ? pos.key() : pos.key() ^ make_key(excludedMove);
     tte = TT.probe(posKey, ss->ttHit);
+    ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ss->ttHit    ? tte->move() : MOVE_NONE;
-
-    if (!rootNode && ttMove && !pos.pseudo_legal(ttMove)){
-        if (pos.rule50_count() < 90)
-            return qsearch<NT>(pos, ss, alpha, beta);
-
-        ss->ttHit = false;
-        ttMove = MOVE_NONE;
-    }
-        
-    ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     if (!excludedMove)
         ss->ttPv = PvNode || (ss->ttHit && tte->is_pv());
     formerPv = ss->ttPv && !PvNode;
@@ -707,7 +698,9 @@ namespace {
         // If ttMove is quiet, update move sorting heuristics on TT hit
         if (ttMove)
         {
-            if (ttValue >= beta)
+            if (!rootNode && pos.rule50_count() < 90 && !pos.pseudo_legal(ttMove))
+                return qsearch<NT>(pos, ss, beta - 1, beta);
+            else if (ttValue >= beta)
             {
                 // Bonus for a quiet ttMove that fails high
                 if (!pos.capture_or_promotion(ttMove))
@@ -730,6 +723,11 @@ namespace {
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
             return ttValue;
+    } else if (!rootNode && ttMove && !pos.pseudo_legal(ttMove)){
+        ss->ttHit = false;
+        ttMove = MOVE_NONE;
+        ttValue = VALUE_NONE;
+        thisThread->ttHitAverage -= TtHitAverageResolution;
     }
 
     // Step 5. Tablebases probe
@@ -1484,9 +1482,6 @@ moves_loop: // When in check, search starts from here
     ttMove = ss->ttHit ? tte->move() : MOVE_NONE;
 
     if (ttMove && !pos.pseudo_legal(ttMove)){
-        if (pos.rule50_count() < 90)
-            return -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
-
         ss->ttHit = false;
         ttMove = MOVE_NONE;
     }
