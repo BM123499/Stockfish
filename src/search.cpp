@@ -727,6 +727,7 @@ namespace {
         ss->ttHit = false;
         ttMove = MOVE_NONE;
         ttValue = VALUE_NONE;
+        thisThread->ttHitAverage -= TtHitAverageResolution;
     }
 
     // Step 5. Tablebases probe
