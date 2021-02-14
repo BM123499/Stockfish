@@ -240,7 +240,6 @@ top:
   case QCAPTURE:
       if (select<Best>([&](){ return   depth > DEPTH_QS_RECAPTURES
                                     || to_sq(*cur) == recaptureSquare
-                                    || type_of(*cur) == PROMOTION
                                     || pos.check_squares(type_of(pos.moved_piece(*cur))) & to_sq(*cur); }))
           return *(cur - 1);
 
