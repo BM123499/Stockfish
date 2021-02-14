@@ -1484,9 +1484,6 @@ moves_loop: // When in check, search starts from here
     ttMove = ss->ttHit ? tte->move() : MOVE_NONE;
 
     if (ttMove && !pos.pseudo_legal(ttMove)){
-        if (pos.rule50_count() < 90)
-            return -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
-
         ss->ttHit = false;
         ttMove = MOVE_NONE;
     }
