@@ -718,6 +718,8 @@ namespace {
                 update_continuation_histories(ss, pos.moved_piece(ttMove), to_sq(ttMove), penalty);
             }
         }
+        else if (pos.rule50_count() < 90 && pos.piece_on(to_sq(ttMove)) != make_piece(pos.side_to_move(), KING))
+            return qsearch<NT>(pos, ss, beta - 1, beta);
         else
             ttMove = MOVE_NONE;
 
