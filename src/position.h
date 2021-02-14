@@ -164,6 +164,7 @@ public:
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
   Value non_pawn_material() const;
+  Move sign_move() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok() const;
@@ -374,6 +375,11 @@ inline bool Position::capture(Move m) const {
 
 inline Piece Position::captured_piece() const {
   return st->capturedPiece;
+}
+
+inline Move Position::sign_move() const {
+  Square ksq = square<KING>(sideToMove);
+  return make_move(ksq, ksq);
 }
 
 inline Thread* Position::this_thread() const {

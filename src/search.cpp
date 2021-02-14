@@ -668,18 +668,9 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove == MOVE_NONE ? pos.key() : pos.key() ^ make_key(excludedMove);
     tte = TT.probe(posKey, ss->ttHit);
+    ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ss->ttHit    ? tte->move() : MOVE_NONE;
-
-    if (!rootNode && ttMove && !pos.pseudo_legal(ttMove)){
-        if (pos.rule50_count() < 90)
-            return qsearch<NT>(pos, ss, alpha, beta);
-
-        ss->ttHit = false;
-        ttMove = MOVE_NONE;
-    }
-        
-    ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     if (!excludedMove)
         ss->ttPv = PvNode || (ss->ttHit && tte->is_pv());
     formerPv = ss->ttPv && !PvNode;
@@ -705,9 +696,11 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
-        if (ttMove)
+        if (is_ok(ttMove))
         {
-            if (ttValue >= beta)
+            if (!rootNode && pos.rule50_count() < 90 && !pos.pseudo_legal(ttMove))
+                return qsearch<NT>(pos, ss, beta - 1, beta);
+            else if (ttValue >= beta)
             {
                 // Bonus for a quiet ttMove that fails high
                 if (!pos.capture_or_promotion(ttMove))
@@ -725,12 +718,22 @@ namespace {
                 update_continuation_histories(ss, pos.moved_piece(ttMove), to_sq(ttMove), penalty);
             }
         }
+        else
+            ttMove = MOVE_NONE;
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
             return ttValue;
-    }
+    } else if (!rootNode && ss->ttHit
+               && (is_ok(ttMove) ? !pos.pseudo_legal(ttMove)
+                                 : pos.piece_on(to_sq(ttMove)) != make_piece(pos.side_to_move(), KING))){
+        ss->ttHit = false;
+        ttMove = MOVE_NONE;
+        ttValue = VALUE_NONE;
+        thisThread->ttHitAverage -= TtHitAverageResolution;
+    } else if (ss-> ttHit && !is_ok(ttMove))
+        ttMove = MOVE_NONE;
 
     // Step 5. Tablebases probe
     if (!rootNode && TB::Cardinality)
@@ -768,7 +771,7 @@ namespace {
                 {
                     tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
                               std::min(MAX_PLY - 1, depth + 6),
-                              MOVE_NONE, VALUE_NONE);
+                              pos.sign_move(), VALUE_NONE);
 
                     return value;
                 }
@@ -820,7 +823,7 @@ namespace {
             ss->staticEval = eval = -(ss-1)->staticEval + 2 * Tempo;
 
         // Save static evaluation into transposition table
-        tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
+        tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, pos.sign_move(), eval);
     }
 
     // Use static evaluation difference to improve quiet move ordering
@@ -1483,10 +1486,13 @@ moves_loop: // When in check, search starts from here
     tte = TT.probe(posKey, ss->ttHit);
     ttMove = ss->ttHit ? tte->move() : MOVE_NONE;
 
-    if (ttMove && !pos.pseudo_legal(ttMove)){
+    if (ss->ttHit && 
+        (is_ok(ttMove) ? !pos.pseudo_legal(ttMove)
+                       : pos.piece_on(to_sq(ttMove)) != make_piece(pos.side_to_move(), KING))){
         ss->ttHit = false;
         ttMove = MOVE_NONE;
-    }
+    } else if (ss->ttHit && !is_ok(ttMove))
+        ttMove = MOVE_NONE;
 
     ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     pvHit = ss->ttHit && tte->is_pv();
@@ -1531,7 +1537,7 @@ moves_loop: // When in check, search starts from here
             // Save gathered info in transposition table
             if (!ss->ttHit)
                 tte->save(posKey, value_to_tt(bestValue, ss->ply), false, BOUND_LOWER,
-                          DEPTH_NONE, MOVE_NONE, ss->staticEval);
+                          DEPTH_NONE, pos.sign_move(), ss->staticEval);
 
             return bestValue;
         }
