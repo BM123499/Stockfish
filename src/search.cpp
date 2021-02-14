@@ -671,7 +671,7 @@ namespace {
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ss->ttHit    ? tte->move() : MOVE_NONE;
 
-    if (ttMove && !pos.pseudo_legal(ttMove)){
+    if (!rootNode && ttMove && !pos.pseudo_legal(ttMove)){
         if (pos.rule50_count() < 90)
             return qsearch<NT>(pos, ss, alpha, beta);
 
