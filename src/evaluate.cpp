@@ -185,10 +185,10 @@ namespace Trace {
 
 using namespace Trace;
 
-Value NNUEThreshold1 = Value(682);
-Value NNUEThreshold2 = Value(176);
-TUNE(SetRange(400, 900), NNUEThreshold1);
-TUNE(SetRange( 50, 300), NNUEThreshold2);
+Value NNUEThreshold1 = Value(720);
+Value NNUEThreshold2 = Value(194);
+TUNE(SetRange(520, 920), NNUEThreshold1);
+TUNE(SetRange( 50, 400), NNUEThreshold2);
 
 namespace {
 
@@ -1046,10 +1046,9 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
-int Tw0 = 252, Tw1 = 20512, Tw2 = 128;
-TUNE(SetRange(    0,   504), Tw0);
+int Tw0 = 208, Tw1 = 628;
+TUNE(SetRange(    0,   416), Tw0);
 TUNE(SetRange(16000, 25600), Tw1);
-TUNE(SetRange(    0,   256), Tw2);
 
 Value Eval::evaluate(const Position& pos) {
 
@@ -1062,7 +1061,7 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
          int mat = pos.non_pawn_material() + Tw0 * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (Tw1 + mat - Tw2 * pos.rule50_count()) / 32768 + Tempo;
+         return NNUE::evaluate(pos) * (Tw1 + mat / 32 - 3 * pos.rule50_count()) / 1024 + Tempo;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
