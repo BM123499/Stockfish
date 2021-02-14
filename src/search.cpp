@@ -1188,6 +1188,9 @@ moves_loop: // When in check, search starts from here
           if (th.marked())
               r++;
 
+          if (ttForce)
+              r++;
+
           // Decrease reduction if position is or has been on the PV 
           // and node is not likely to fail low (~10 Elo)
           if (ss->ttPv && !likelyFailLow)
