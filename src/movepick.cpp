@@ -238,7 +238,8 @@ top:
       return select<Best>([&](){ return pos.see_ge(*cur, threshold); });
 
   case QCAPTURE:
-      if (select<Best>([&](){ return   depth > DEPTH_QS_RECAPTURES
+      if (select<Best>([&](){ return   (depth > DEPTH_QS_RECAPTURES
+                                        && pos.see_ge(*cur, Value(-69 * cur->value / 1024)))
                                     || to_sq(*cur) == recaptureSquare; }))
           return *(cur - 1);
 
