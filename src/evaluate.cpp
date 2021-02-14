@@ -1047,8 +1047,8 @@ make_v:
 /// evaluation of the position from the point of view of the side to move.
 
 int Tw0 = 208, Tw1 = 628;
-TUNE(SetRange(    0,   416), Tw0);
-TUNE(SetRange(16000, 25600), Tw1);
+TUNE(SetRange(  0, 416), Tw0);
+TUNE(SetRange(400, 750), Tw1);
 
 Value Eval::evaluate(const Position& pos) {
 
