@@ -1189,7 +1189,7 @@ moves_loop: // When in check, search starts from here
               r++;
 
           if (ttForce)
-              r++;
+              r += 2;
 
           // Decrease reduction if position is or has been on the PV 
           // and node is not likely to fail low (~10 Elo)
