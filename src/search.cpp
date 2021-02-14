@@ -692,14 +692,13 @@ namespace {
         && ss->ttHit
         && tte->depth() >= depth
         && ttValue != VALUE_NONE // Possible in case of TT access race
-        && pos.rule50_count() < 90
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
         if (ttMove)
         {
-            if (!rootNode && !pos.pseudo_legal(ttMove))
+            if (!rootNode && pos.rule50_count() < 90 && !pos.pseudo_legal(ttMove))
                 return qsearch<NT>(pos, ss, alpha, beta);
             else if (ttValue >= beta)
             {
@@ -722,7 +721,8 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        return ttValue;
+        if (pos.rule50_count() < 90)
+            return ttValue;
     } else if (!rootNode && ttMove && !pos.pseudo_legal(ttMove)){
         ss->ttHit = false;
         ttMove = MOVE_NONE;
