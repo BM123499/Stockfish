@@ -699,7 +699,7 @@ namespace {
         if (ttMove)
         {
             if (!rootNode && pos.rule50_count() < 90 && !pos.pseudo_legal(ttMove))
-                return qsearch<NT>(pos, ss, alpha, beta);
+                return qsearch<NT>(pos, ss, alpha, beta, -2);
             else if (ttValue >= beta)
             {
                 // Bonus for a quiet ttMove that fails high
