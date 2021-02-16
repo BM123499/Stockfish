@@ -18,20 +18,14 @@ This distribution of Stockfish consists of the following files:
   * Readme.md, the file you are currently reading.
 
   * Copying.txt, a text file containing the GNU General Public License version 3.
+  
+  * AUTHORS, a text file with the list of authors for the project
 
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile Stockfish on Unix-like systems.
 
 
-## UCI parameters
-
-Currently, Stockfish has the following UCI options:
-
-  * #### Debug Log File
-    Write all communication to and from the engine into a text file.
-
-  * #### Contempt
-    A positive value for contempt favors middle game positions and avoids draws.
+## UCI options
 
   * #### Analysis Contempt
     By default, contempt is set to prefer the side to move. Set this option to "White"
@@ -99,7 +93,7 @@ Currently, Stockfish has the following UCI options:
   * #### SyzygyProbeDepth
     Minimum remaining search depth for which a position is probed. Set this option
     to a higher value to probe less aggressively if you experience too much slowdown
-    (in terms of nps) due to TB probing.
+    (in terms of nps) due to tablebase probing.
 
   * #### Syzygy50MoveRule
     Disable to let fifty-move rule draws detected by Syzygy tablebase probes count
@@ -129,13 +123,10 @@ Currently, Stockfish has the following UCI options:
     Tells the engine to use nodes searched instead of wall time to account for
     elapsed time. Useful for engine testing.
 
-  * #### Clear Hash
-    Clear the hash table.
-
   * #### Debug Log File
     Write all communication to and from the engine into a text file.
 
-## What to expect from Syzygybases?
+## What to expect from the Syzygy tablebases?
 
 If the engine is searching a position that is not in the tablebases (e.g.
 a position with 8 pieces), it will access the tablebases during the search.
@@ -153,9 +144,9 @@ will not report a mate score, even if the position is known to be won.**
 It is therefore clear that this behaviour is not identical to what one might
 be used to with Nalimov tablebases. There are technical reasons for this
 difference, the main technical reason being that Nalimov tablebases use the
-DTM metric (distance-to-mate), while Syzygybases use a variation of the
+DTM metric (distance-to-mate), while the Syzygy tablebases use a variation of the
 DTZ metric (distance-to-zero, zero meaning any move that resets the 50-move
-counter). This special metric is one of the reasons that Syzygybases are
+counter). This special metric is one of the reasons that the Syzygy tablebases are
 more compact than Nalimov tablebases, while still storing all information
 needed for optimal play and in addition being able to take into account
 the 50-move rule.
@@ -238,8 +229,9 @@ generic rather than being focused on Stockfish's precise implementation.
 Nevertheless, a helpful resource.
 
 * The latest source can always be found on [GitHub](https://github.com/official-stockfish/Stockfish).
-Discussions about Stockfish take place in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking)
-group and engine testing is done on [Fishtest](https://tests.stockfishchess.org/tests).
+Discussions about Stockfish take place these days mainly in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking)
+group and on the [Stockfish Discord channel](https://discord.gg/nv8gDtt).
+The engine testing is done on [Fishtest](https://tests.stockfishchess.org/tests).
 If you want to help improve Stockfish, please read this [guideline](https://github.com/glinscott/fishtest/wiki/Creating-my-first-test)
 first, where the basics of Stockfish development are explained.
 
@@ -254,9 +246,10 @@ it (either by itself or as part of some bigger software package), or
 using it as the starting point for a software project of your own.
 
 The only real limitation is that whenever you distribute Stockfish in
-some way, you must always include the full source code, or a pointer
-to where the source code can be found. If you make any changes to the
-source code, these changes must also be made available under the GPL.
+some way, you MUST always include the full source code, or a pointer
+to where the source code can be found, to generate the exact binary
+you are distributing. If you make any changes to the source code,
+these changes must also be made available under the GPL.
 
 For full details, read the copy of the GPL v3 found in the file named
 *Copying.txt*.
