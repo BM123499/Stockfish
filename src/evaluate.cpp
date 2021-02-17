@@ -1041,6 +1041,10 @@ make_v:
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
+int tP = PawnValueEg, tN = KnightValueMg, tB = BishopValueMg;
+int tR = RookValueMg, tQ =  QueenValueMg;
+int tw = 641;
+TUNE(tP, tN, tB, tR, tQ, tw);
 
 Value Eval::evaluate(const Position& pos) {
 
@@ -1052,8 +1056,9 @@ Value Eval::evaluate(const Position& pos) {
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
-         int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (641 + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
+         int mat = tP * pos.count<PAWN>() + tN * pos.count<KNIGHT>() + tB * pos.count<BISHOP>()
+                 + tR * pos.count<ROOK>() + tQ * pos.count<QUEEN>();
+         return NNUE::evaluate(pos) * (tw + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
