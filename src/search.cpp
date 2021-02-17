@@ -54,12 +54,6 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-int tw0 = 66, tw1 = 6, tw2 = 231, tw3 = 206;
-TUNE(SetRange(-64, 256), tw0);
-TUNE(SetRange(  2,   8), tw1);
-TUNE(SetRange(-64, 512), tw2);
-TUNE(SetRange(-64, 512), tw3);
-
 namespace {
 
   // Different node types, used as a template parameter
@@ -87,7 +81,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 13 ? tw0 : tw1 * d * d + tw2 * d - tw3;
+    return d > 13 ? 72 : 6 * d * d + 240 * d - 116;
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
