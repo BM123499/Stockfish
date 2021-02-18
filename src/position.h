@@ -42,7 +42,7 @@ struct StateInfo {
   Key    pawnKey;
   Key    materialKey;
   Value  nonPawnMaterial[COLOR_NB];
-  Value  NNPieceValue;
+  Value  NNMaterial;
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
@@ -346,7 +346,7 @@ inline Value Position::non_pawn_material() const {
 }
 
 inline Value Position::NN_material() const {
-  return st->NNPieceValue;
+  return st->NNMaterial;
 }
 
 inline int Position::game_ply() const {
