@@ -219,6 +219,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   // 2. Active color
   ss >> token;
   sideToMove = (token == 'w' ? WHITE : BLACK);
+  engineSide = sideToMove;
   ss >> token;
 
   // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,

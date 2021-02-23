@@ -154,6 +154,7 @@ public:
 
   // Other properties of the position
   Color side_to_move() const;
+  bool engine_side() const;
   int game_ply() const;
   bool is_chess960() const;
   Thread* this_thread() const;
@@ -195,6 +196,7 @@ private:
   Bitboard castlingPath[CASTLING_RIGHT_NB];
   int gamePly;
   Color sideToMove;
+  Color engineSide;
   Score psq;
   Thread* thisThread;
   StateInfo* st;
@@ -205,6 +207,10 @@ extern std::ostream& operator<<(std::ostream& os, const Position& pos);
 
 inline Color Position::side_to_move() const {
   return sideToMove;
+}
+
+inline bool Position::engine_side() const {
+  return sideToMove == engineSide;
 }
 
 inline Piece Position::piece_on(Square s) const {
