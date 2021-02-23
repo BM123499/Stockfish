@@ -631,8 +631,10 @@ namespace {
         if (   Threads.stop.load(std::memory_order_relaxed)
             || pos.is_draw(ss->ply)
             || ss->ply >= MAX_PLY)
-            return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos)
-                                                        : value_draw(pos.this_thread());
+            return ss->ply ? (ss->ply >= MAX_PLY && !ss->inCheck) ?  evaluate(pos)
+                                                                  :  value_draw(pos.this_thread())
+                           : (ss->ply >= MAX_PLY && !ss->inCheck) ? -evaluate(pos)
+                                                                  : -value_draw(pos.this_thread());
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -643,7 +645,7 @@ namespace {
         alpha = std::max(mated_in(ss->ply), alpha);
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
-            return alpha;
+            return ss->ply ? alpha : -alpha;
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
@@ -720,7 +722,7 @@ namespace {
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
-            return ttValue;
+            return ss->ply ? ttValue : -ttValue;
     }
 
     // Step 5. Tablebases probe
@@ -761,7 +763,7 @@ namespace {
                               std::min(MAX_PLY - 1, depth + 6),
                               MOVE_NONE, VALUE_NONE);
 
-                    return value;
+                    return ss->ply ? value : -value;
                 }
 
                 if (PvNode)
@@ -834,7 +836,7 @@ namespace {
         &&  depth < 9
         &&  eval - futility_margin(depth, improving) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
-        return eval;
+        return ss->ply ? eval : -eval;
 
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
@@ -868,7 +870,7 @@ namespace {
                 nullValue = beta;
 
             if (thisThread->nmpMinPly || (abs(beta) < VALUE_KNOWN_WIN && depth < 14))
-                return nullValue;
+                return ss->ply ? nullValue : -nullValue;
 
             assert(!thisThread->nmpMinPly); // Recursive verification is not allowed
 
@@ -882,7 +884,7 @@ namespace {
             thisThread->nmpMinPly = 0;
 
             if (v >= beta)
-                return nullValue;
+                return ss->ply ? nullValue : -nullValue;
         }
     }
 
@@ -911,7 +913,7 @@ namespace {
             && ttValue >= probCutBeta
             && ttMove
             && pos.capture_or_promotion(ttMove))
-            return probCutBeta;
+            return ss->ply ? probCutBeta : -probCutBeta;
 
         assert(probCutBeta < VALUE_INFINITE);
         MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &captureHistory);
@@ -955,7 +957,7 @@ namespace {
                         tte->save(posKey, value_to_tt(value, ss->ply), ttPv,
                             BOUND_LOWER,
                             depth - 3, move, ss->staticEval);
-                    return value;
+                    return ss->ply ? value : value;
                 }
             }
          ss->ttPv = ttPv;
@@ -983,7 +985,7 @@ moves_loop: // When in check, search starts from here
         && abs(ttValue) <= VALUE_KNOWN_WIN
         && abs(beta) <= VALUE_KNOWN_WIN
        )
-        return probCutBeta;
+        return ss->ply ? probCutBeta : -probCutBeta;
 
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
@@ -1134,7 +1136,7 @@ moves_loop: // When in check, search starts from here
           // that multiple moves fail high, and we can prune the whole subtree by returning
           // a soft bound.
           else if (singularBeta >= beta)
-              return singularBeta;
+              return ss->ply ? singularBeta : -singularBeta;
 
           // If the eval of ttMove is greater than beta we try also if there is another
           // move that pushes it over beta, if so also produce a cutoff.
@@ -1145,7 +1147,7 @@ moves_loop: // When in check, search starts from here
               ss->excludedMove = MOVE_NONE;
 
               if (value >= beta)
-                  return beta;
+                  return ss->ply ? beta : -beta;
           }
       }
 
@@ -1433,7 +1435,7 @@ moves_loop: // When in check, search starts from here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    return bestValue;
+    return ss->ply ? bestValue : -bestValue;
   }
 
 
