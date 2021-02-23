@@ -58,10 +58,7 @@ using namespace Search;
 namespace {
 
   int netbiases[1] = {1907};
-  TUNE(netbiases);
-  int netweights[16] = {94, 62, -48, -42, -41, -46, -37, 79, -50, -45, 44, -52, -47, -33, -38, -34}; // int8_t
-  auto myfunc127 = [](int m){ return std::pair<int, int>(std::max(-127, m - 80),std::min(127,m + 80));};
-  TUNE(SetRange(myfunc127), netweights);
+  TUNE(SetRange(1000, 3000), netbiases);
 
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV };
@@ -229,39 +226,7 @@ void MainThread::search() {
       return;
   }
 
-  if (false)
-  {
-     size_t ndim=Eval::NNUE::Network::kOutputDimensions;
-     std::cout << "  int netbiases[" << ndim << "] = {";
-     for (size_t i=0; i < ndim; ++i)
-     {
-         std::cout << int(Eval::NNUE::network->biases_[i]);
-         if (i < ndim - 1) std::cout << ", ";
-     }
-     std::cout << "}; // int32_t" << std::endl;
-
-     ndim=Eval::NNUE::Network::kOutputDimensions * Eval::NNUE::Network::kPaddedInputDimensions;
-     std::cout << "  int netweights[" << ndim << "] = {";
-     for (size_t i=0; i < ndim; ++i)
-     {
-         std::cout << int(Eval::NNUE::network->weights_[i]);
-         if (i < ndim - 1) std::cout << ", ";
-     }
-     std::cout << "}; // int8_t" << std::endl;
-  }
-  else
-  {
-    //  size_t ndim=Eval::NNUE::Network::kOutputDimensions;
-     for (size_t i=0; i < 1; ++i)
-     {
-         Eval::NNUE::network->biases_[i] = netbiases[i];
-     }
-    //  ndim=Eval::NNUE::Network::kOutputDimensions * Eval::NNUE::Network::kPaddedInputDimensions;
-     for (size_t i=0; i < 16; ++i)
-     {
-        Eval::NNUE::network->weights_[i] = netweights[i];
-     }
-  }
+  Eval::NNUE::network->biases_[0] = netbiases[0];
 
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
