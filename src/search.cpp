@@ -57,10 +57,9 @@ using namespace Search;
 
 namespace {
 
-  int netbiases[1] = {-193};
+  int netbiases[1] = {1907};
   TUNE(netbiases);
-  int netweights[32] = {-27,	-16,	-76,	57,	-21,	121,	-118,	25,	31,	52,	-34,	22,	13,	-37,	-20,	96,	
-  -57,	34,	36,	41,	-18,	-19,	16,	-31,	-12,	-36,	-22,	-10,	-33,	26,	-12,	18};
+  int netweights[16] = {94, 62, -48, -42, -41, -46, -37, 79, -50, -45, 44, -52, -47, -33, -38, -34}; // int8_t
   auto myfunc127 = [](int m){ return std::pair<int, int>(std::max(-127, m - 80),std::min(127,m + 80));};
   TUNE(SetRange(myfunc127), netweights);
 
@@ -252,13 +251,13 @@ void MainThread::search() {
   }
   else
   {
-     size_t ndim=Eval::NNUE::Network::kOutputDimensions;
-     for (size_t i=0; i < ndim; ++i)
+    //  size_t ndim=Eval::NNUE::Network::kOutputDimensions;
+     for (size_t i=0; i < 1; ++i)
      {
          Eval::NNUE::network->biases_[i] = netbiases[i];
      }
-     ndim=Eval::NNUE::Network::kOutputDimensions * Eval::NNUE::Network::kPaddedInputDimensions;
-     for (size_t i=0; i < ndim; ++i)
+    //  ndim=Eval::NNUE::Network::kOutputDimensions * Eval::NNUE::Network::kPaddedInputDimensions;
+     for (size_t i=0; i < 16; ++i)
      {
         Eval::NNUE::network->weights_[i] = netweights[i];
      }
