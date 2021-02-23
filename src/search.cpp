@@ -327,7 +327,7 @@ void Thread::search() {
   std::copy(&lowPlyHistory[2][0], &lowPlyHistory.back().back() + 1, &lowPlyHistory[0][0]);
   std::fill(&lowPlyHistory[MAX_LPH - 2][0], &lowPlyHistory.back().back() + 1, 0);
 
-  size_t multiPV = size_t(Options["MultiPV"]);
+  size_t multiPV = 256;
 
   // Pick integer skill levels, but non-deterministically round up or down
   // such that the average integer skill corresponds to the input floating point one.
@@ -344,7 +344,7 @@ void Thread::search() {
 
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
-  if (skill.enabled())
+  if (false)
       multiPV = std::max(multiPV, (size_t)4);
 
   multiPV = std::min(multiPV, rootMoves.size());
@@ -496,7 +496,7 @@ void Thread::search() {
           continue;
 
       // If skill level is enabled and time is up, pick a sub-optimal best move
-      if (skill.enabled() && skill.time_to_pick(rootDepth))
+      if (true && skill.time_to_pick(rootDepth))
           skill.pick_best(multiPV);
 
       // Do we have time for the next iteration? Can we stop searching now?
@@ -555,9 +555,8 @@ void Thread::search() {
   mainThread->previousTimeReduction = timeReduction;
 
   // If skill level is enabled, swap best PV line with the sub-optimal one
-  if (skill.enabled())
-      std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
-                skill.best ? skill.best : skill.pick_best(multiPV)));
+  if (true)
+      std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), skill.pick_best(multiPV)));
 }
 
 
@@ -1825,31 +1824,31 @@ moves_loop: // When in check, search starts from here
   Move Skill::pick_best(size_t multiPV) {
 
     const RootMoves& rootMoves = Threads.main()->rootMoves;
-    static PRNG rng(now()); // PRNG sequence should be non-deterministic
+    // static PRNG rng(now()); // PRNG sequence should be non-deterministic
 
-    // RootMoves are already sorted by score in descending order
-    Value topScore = rootMoves[0].score;
-    int delta = std::min(topScore - rootMoves[multiPV - 1].score, PawnValueMg);
-    int weakness = 120 - 2 * level;
-    int maxScore = -VALUE_INFINITE;
+    // // RootMoves are already sorted by score in descending order
+    // Value topScore = rootMoves[0].score;
+    // int delta = std::min(topScore - rootMoves[multiPV - 1].score, PawnValueMg);
+    // int weakness = 120 - 2 * level;
+    // int maxScore = -VALUE_INFINITE;
 
-    // Choose best move. For each move score we add two terms, both dependent on
-    // weakness. One is deterministic and bigger for weaker levels, and one is
-    // random. Then we choose the move with the resulting highest score.
-    for (size_t i = 0; i < multiPV; ++i)
-    {
-        // This is our magic formula
-        int push = (  weakness * int(topScore - rootMoves[i].score)
-                    + delta * (rng.rand<unsigned>() % weakness)) / 128;
+    // // Choose best move. For each move score we add two terms, both dependent on
+    // // weakness. One is deterministic and bigger for weaker levels, and one is
+    // // random. Then we choose the move with the resulting highest score.
+    // for (size_t i = 0; i < multiPV; ++i)
+    // {
+    //     // This is our magic formula
+    //     int push = (  weakness * int(topScore - rootMoves[i].score)
+    //                 + delta * (rng.rand<unsigned>() % weakness)) / 128;
 
-        if (rootMoves[i].score + push >= maxScore)
-        {
-            maxScore = rootMoves[i].score + push;
-            best = rootMoves[i].pv[0];
-        }
-    }
+    //     if (rootMoves[i].score + push >= maxScore)
+    //     {
+    //         maxScore = rootMoves[i].score + push;
+    //         best = rootMoves[i].pv[0];
+    //     }
+    // }
 
-    return best;
+    return rootMoves[multiPV - 1].pv[0];
   }
 
 } // namespace
