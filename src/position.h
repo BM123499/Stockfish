@@ -210,7 +210,7 @@ inline Color Position::side_to_move() const {
 }
 
 inline bool Position::engine_side() const {
-  return sideToMove == engineSide;
+  return sideToMove != engineSide;
 }
 
 inline Piece Position::piece_on(Square s) const {

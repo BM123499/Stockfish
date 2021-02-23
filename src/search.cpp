@@ -1400,7 +1400,7 @@ moves_loop: // When in check, search starts from here
 
     if (!moveCount)
         bestValue = excludedMove ? alpha
-                   :     ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+                   :     ss->inCheck ? (pos.engine_side() ? -1 : 1) * mated_in(ss->ply) : VALUE_DRAW;
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
     else if (bestMove)
@@ -1654,7 +1654,7 @@ moves_loop: // When in check, search starts from here
     {
         assert(!MoveList<LEGAL>(pos).size());
 
-        return mated_in(ss->ply); // Plies to mate from the root
+        return (pos.engine_side() ? -1 : 1) * mated_in(ss->ply); // Plies to mate from the root
     }
 
     // Save gathered info in transposition table
