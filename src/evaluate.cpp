@@ -194,6 +194,9 @@ namespace {
   constexpr Value NNUEThreshold1 =   Value(682);
   constexpr Value NNUEThreshold2 =   Value(176);
 
+  int scaling = 641;
+  TUNE(scaling);
+
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10 };
 
@@ -1053,7 +1056,7 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
          int mat = pos.non_pawn_material() + 2 * PawnValueMg * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (641 + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
+         return NNUE::evaluate(pos) * (scaling + mat / 32 - 4 * pos.rule50_count()) / 1024 + Tempo;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
