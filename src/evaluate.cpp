@@ -191,8 +191,8 @@ namespace {
   constexpr Value LazyThreshold1 =  Value(1565);
   constexpr Value LazyThreshold2 =  Value(1102);
   constexpr Value SpaceThreshold = Value(11551);
-  constexpr Value NNUEThreshold1 =   Value(682);
-  constexpr Value NNUEThreshold2 =   Value(176);
+  constexpr Value NNUEThreshold1 =   Value(734);
+  constexpr Value NNUEThreshold2 =   Value(181);
 
   constexpr int scaling = 699;
 
