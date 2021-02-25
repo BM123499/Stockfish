@@ -676,7 +676,7 @@ namespace {
         ttMove = MOVE_NONE;
     }
 
-    ttOverwrite = !ss->ttHit || tte->key() != (uint16_t)pos.key();
+    ttOverwrite = !ss->ttHit;
 
     ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     if (!excludedMove)
@@ -1504,7 +1504,7 @@ moves_loop: // When in check, search starts from here
         ttMove = MOVE_NONE;
     }
 
-    ttOverwrite = !ss->ttHit || tte->key() != (uint16_t)pos.key();
+    ttOverwrite = !ss->ttHit;
 
     ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     pvHit = ss->ttHit && tte->is_pv();
