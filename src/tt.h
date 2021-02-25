@@ -35,7 +35,6 @@
 
 struct TTEntry {
 
-  uint16_t key()const { return key16; }
   Move  move()  const { return (Move )move16; }
   Value value() const { return (Value)value16; }
   Value eval()  const { return (Value)eval16; }
