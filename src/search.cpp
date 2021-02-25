@@ -820,7 +820,6 @@ namespace {
 
         // Save static evaluation into transposition table
         tte->save(ttOverwrite, posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
-        ttOverwrite = false;
     }
 
     // Use static evaluation difference to improve quiet move ordering
