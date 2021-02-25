@@ -691,7 +691,7 @@ namespace {
     if (  !PvNode
         && ss->ttHit
         && tte->depth() >= depth
-        && abs(ttValue) <= VALUE_KNOWN_WIN // Possible in case of TT access race and avoid unproven mate
+        && ttValue != VALUE_NONE // Possible in case of TT access race
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
     {
@@ -719,7 +719,7 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90)
+        if (pos.rule50_count() < 90 && abs(ttValue) <= VALUE_TB_WIN_IN_MAX_PLY - MAX_PLY)
             return ttValue;
     }
 
