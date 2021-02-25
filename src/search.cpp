@@ -719,7 +719,7 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90)
+        if (pos.rule50_count() < 90 && abs(ttValue) <= VALUE_KNOWN_WIN)
             return ttValue;
     }
 
@@ -910,6 +910,7 @@ namespace {
             && ttValue != VALUE_NONE
             && ttValue >= probCutBeta
             && ttMove
+            && abs(probCutBeta) <= VALUE_KNOWN_WIN
             && pos.capture_or_promotion(ttMove))
             return probCutBeta;
 
@@ -1496,6 +1497,7 @@ moves_loop: // When in check, search starts from here
         && ss->ttHit
         && tte->depth() >= ttDepth
         && ttValue != VALUE_NONE // Only in case of TT access race
+        && abs(ttValue) <= VALUE_KNOWN_WIN
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
         return ttValue;
