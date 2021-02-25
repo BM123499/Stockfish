@@ -61,8 +61,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 
   assert(d > 0);
 
-  stage = (pos.checkers() ? EVASION_TT : MAIN_TT) +
-          !(ttm && pos.pseudo_legal(ttm));
+  stage = (pos.checkers() ? EVASION_TT : MAIN_TT) + !ttm;
 }
 
 /// MovePicker constructor for quiescence search
@@ -74,8 +73,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 
   stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) +
           !(   ttm
-            && (pos.checkers() || depth > DEPTH_QS_RECAPTURES || to_sq(ttm) == recaptureSquare)
-            && pos.pseudo_legal(ttm));
+            && (pos.checkers() || depth > DEPTH_QS_RECAPTURES || to_sq(ttm) == recaptureSquare));
 }
 
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
@@ -85,9 +83,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
 
   assert(!pos.checkers());
 
-  stage = PROBCUT_TT + !(ttm && pos.capture(ttm)
-                             && pos.pseudo_legal(ttm)
-                             && pos.see_ge(ttm, threshold));
+  stage = PROBCUT_TT + !(ttm && pos.capture(ttm) && pos.see_ge(ttm, threshold));
 }
 
 /// MovePicker::score() assigns a numerical value to each move in a list, used
