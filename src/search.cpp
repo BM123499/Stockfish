@@ -22,6 +22,9 @@
 #include <cstring>   // For std::memset
 #include <iostream>
 #include <sstream>
+#include <fstream>
+
+std::ofstream MateFile("../mate.txt", std::ios::app), ValueFile("../value.txt", std::ios::app);
 
 #include "evaluate.h"
 #include "misc.h"
@@ -144,10 +147,10 @@ namespace {
   };
 
   template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool research);
 
   template <NodeType NT>
-  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
+  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, bool research, Depth depth = 0);
 
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply, int r50c);
@@ -422,7 +425,7 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false, true);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -566,7 +569,7 @@ namespace {
   // search<>() is the main search function for both PV and non-PV nodes
 
   template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool research) {
 
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
@@ -586,7 +589,7 @@ namespace {
 
     // Dive into quiescence search when the depth reaches zero
     if (depth <= 0)
-        return qsearch<NT>(pos, ss, alpha, beta);
+        return qsearch<NT>(pos, ss, alpha, beta, research);
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -680,7 +683,7 @@ namespace {
         && depth > 12
         && ss->ply - 1 < MAX_LPH
         && !priorCapture
-        && is_ok((ss-1)->currentMove))
+        && is_ok((ss-1)->currentMove) && research)
         thisThread->lowPlyHistory[ss->ply - 1][from_to((ss-1)->currentMove)] << stat_bonus(depth - 5);
 
     // thisThread->ttHitAverage can be used to approximate the running average of ttHit
@@ -696,7 +699,7 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
-        if (ttMove)
+        if (ttMove && research)
         {
             if (ttValue >= beta)
             {
@@ -719,8 +722,15 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90)
+        if (pos.rule50_count() < 90 && research){
+            Value V = search<NT>(pos, ss, alpha, beta, depth, cutNode, false);
+            if (abs(ttValue) > VALUE_MATE_IN_MAX_PLY - MAX_PLY)
+                MateFile  << V << "," << ttValue << "," << (V - ttValue) << std::endl;
+            else
+                ValueFile << V << "," << ttValue << "," << (V - ttValue) << std::endl;
+
             return ttValue;
+        }
     }
 
     // Step 5. Tablebases probe
@@ -757,9 +767,10 @@ namespace {
                 if (    b == BOUND_EXACT
                     || (b == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
-                              std::min(MAX_PLY - 1, depth + 6),
-                              MOVE_NONE, VALUE_NONE);
+                    if (research)
+                        tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
+                                std::min(MAX_PLY - 1, depth + 6),
+                                MOVE_NONE, VALUE_NONE);
 
                     return value;
                 }
@@ -811,11 +822,12 @@ namespace {
             ss->staticEval = eval = -(ss-1)->staticEval + 2 * Tempo;
 
         // Save static evaluation into transposition table
-        tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
+        if (research)
+            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
     }
 
     // Use static evaluation difference to improve quiet move ordering
-    if (is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture)
+    if (is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture && research)
     {
         int bonus = std::clamp(-depth * 4 * int((ss-1)->staticEval + ss->staticEval - 2 * Tempo), -1000, 1000);
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
@@ -857,7 +869,7 @@ namespace {
 
         pos.do_null_move(st);
 
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, research);
 
         pos.undo_null_move();
 
@@ -877,7 +889,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, research);
 
             thisThread->nmpMinPly = 0;
 
@@ -938,11 +950,11 @@ namespace {
                 pos.do_move(move, st);
 
                 // Perform a preliminary qsearch to verify that the move holds
-                value = -qsearch<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1);
+                value = -qsearch<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, research);
 
                 // If the qsearch held, perform the regular search
                 if (value >= probCutBeta)
-                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, research);
 
                 pos.undo_move(move);
 
@@ -951,7 +963,7 @@ namespace {
                     // if transposition table doesn't have equal or more deep info write probCut data into it
                     if ( !(ss->ttHit
                        && tte->depth() >= depth - 3
-                       && ttValue != VALUE_NONE))
+                       && ttValue != VALUE_NONE) && research)
                         tte->save(posKey, value_to_tt(value, ss->ply), ttPv,
                             BOUND_LOWER,
                             depth - 3, move, ss->staticEval);
@@ -1119,7 +1131,7 @@ moves_loop: // When in check, search starts from here
           Value singularBeta = ttValue - ((formerPv + 4) * depth) / 2;
           Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
           ss->excludedMove = move;
-          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, research);
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
@@ -1141,7 +1153,7 @@ moves_loop: // When in check, search starts from here
           else if (ttValue >= beta)
           {
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
+              value = search<NonPV>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode, research);
               ss->excludedMove = MOVE_NONE;
 
               if (value >= beta)
@@ -1269,7 +1281,7 @@ moves_loop: // When in check, search starts from here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, research);
 
           doFullDepthSearch = value > alpha && d != newDepth;
 
@@ -1285,10 +1297,10 @@ moves_loop: // When in check, search starts from here
       // Step 17. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode, research);
 
           // If the move passed LMR update its stats
-          if (didLMR && !captureOrPromotion)
+          if (didLMR && !captureOrPromotion && research)
           {
               int bonus = value > alpha ?  stat_bonus(newDepth)
                                         : -stat_bonus(newDepth);
@@ -1306,7 +1318,7 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
-                              std::min(maxNextDepth, newDepth), false);
+                              std::min(maxNextDepth, newDepth), false, research);
       }
 
       // Step 18. Undo move
@@ -1373,7 +1385,7 @@ moves_loop: // When in check, search starts from here
       }
 
       // If the move is worse than some previously searched move, remember it to update its stats later
-      if (move != bestMove)
+      if (move != bestMove && research)
       {
           if (captureOrPromotion && captureCount < 32)
               capturesSearched[captureCount++] = move;
@@ -1403,13 +1415,13 @@ moves_loop: // When in check, search starts from here
                    :     ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
-    else if (bestMove)
+    else if (bestMove && research)
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
 
     // Bonus for prior countermove that caused the fail low
     else if (   (depth >= 3 || PvNode)
-             && !priorCapture)
+             && !priorCapture && research)
         update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, stat_bonus(depth));
 
     if (PvNode)
@@ -1425,7 +1437,7 @@ moves_loop: // When in check, search starts from here
         ss->ttPv = ss->ttPv && (ss+1)->ttPv;
 
     // Write gathered information in transposition table
-    if (!excludedMove && !(rootNode && thisThread->pvIdx))
+    if (!excludedMove && !(rootNode && thisThread->pvIdx) && research)
         tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
                   bestValue >= beta ? BOUND_LOWER :
                   PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
@@ -1440,7 +1452,7 @@ moves_loop: // When in check, search starts from here
   // qsearch() is the quiescence search function, which is called by the main search
   // function with zero depth, or recursively with further decreasing depth per call.
   template <NodeType NT>
-  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
+  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, bool research, Depth depth) {
 
     constexpr bool PvNode = NT == PV;
 
@@ -1530,7 +1542,7 @@ moves_loop: // When in check, search starts from here
         if (bestValue >= beta)
         {
             // Save gathered info in transposition table
-            if (!ss->ttHit)
+            if (!ss->ttHit && research)
                 tte->save(posKey, value_to_tt(bestValue, ss->ply), false, BOUND_LOWER,
                           DEPTH_NONE, MOVE_NONE, ss->staticEval);
 
@@ -1623,7 +1635,7 @@ moves_loop: // When in check, search starts from here
 
       // Make and search the move
       pos.do_move(move, st, givesCheck);
-      value = -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
+      value = -qsearch<NT>(pos, ss+1, -beta, -alpha, research, depth - 1);
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
@@ -1637,7 +1649,7 @@ moves_loop: // When in check, search starts from here
           {
               bestMove = move;
 
-              if (PvNode) // Update pv even in fail-high case
+              if (PvNode && research) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha here!
@@ -1658,10 +1670,11 @@ moves_loop: // When in check, search starts from here
     }
 
     // Save gathered info in transposition table
-    tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
-              bestValue >= beta ? BOUND_LOWER :
-              PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
-              ttDepth, bestMove, ss->staticEval);
+    if(research)
+        tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
+                bestValue >= beta ? BOUND_LOWER :
+                PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
+                ttDepth, bestMove, ss->staticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
