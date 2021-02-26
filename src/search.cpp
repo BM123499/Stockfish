@@ -24,7 +24,9 @@
 #include <sstream>
 #include <fstream>
 
-std::ofstream MateFile("../mate.txt", std::ios::app), ValueFile("../value.txt", std::ios::app);
+std::ofstream MateFile,
+              UnMateFile,
+              ValueFile;
 
 #include "evaluate.h"
 #include "misc.h"
@@ -331,6 +333,10 @@ void Thread::search() {
   std::fill(&lowPlyHistory[MAX_LPH - 2][0], &lowPlyHistory.back().back() + 1, 0);
 
   size_t multiPV = size_t(Options["MultiPV"]);
+  
+  MateFile.open("../mate.txt", std::ios::app);
+  UnMateFile.open("../unmate.txt", std::ios::app);
+  ValueFile.open("../value.txt", std::ios::app);
 
   // Pick integer skill levels, but non-deterministically round up or down
   // such that the average integer skill corresponds to the input floating point one.
@@ -561,6 +567,10 @@ void Thread::search() {
   if (skill.enabled())
       std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
                 skill.best ? skill.best : skill.pick_best(multiPV)));
+
+  MateFile.close();
+  UnMateFile.close();
+  ValueFile.close();
 }
 
 
@@ -691,7 +701,7 @@ namespace {
                                 + TtHitAverageResolution * ss->ttHit;
 
     // At non-PV nodes we check for an early TT cutoff
-    if (  !PvNode
+    if (  !PvNode && research
         && ss->ttHit
         && tte->depth() >= depth
         && ttValue != VALUE_NONE // Possible in case of TT access race
@@ -699,7 +709,7 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
-        if (ttMove && research)
+        if (ttMove)
         {
             if (ttValue >= beta)
             {
@@ -722,12 +732,14 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90 && research){
-            Value V = search<NT>(pos, ss, alpha, beta, depth, cutNode, false);
+        if (pos.rule50_count() < 90){
+            Value V = search<NT>(pos, ss, alpha, beta, std::max(tte->depth(), depth), cutNode, false);
             if (abs(ttValue) > VALUE_MATE_IN_MAX_PLY - MAX_PLY)
-                MateFile  << V << "," << ttValue << "," << (V - ttValue) << std::endl;
+                MateFile    << V << "," << ttValue << "," << (int32_t(V) - int32_t(ttValue)) << std::endl;
+            else if (abs(V) > VALUE_MATE_IN_MAX_PLY - MAX_PLY)
+                UnMateFile  << V << "," << ttValue << "," << (int32_t(V) - int32_t(ttValue)) << std::endl;
             else
-                ValueFile << V << "," << ttValue << "," << (V - ttValue) << std::endl;
+                ValueFile   << V << "," << ttValue << "," << (int32_t(V) - int32_t(ttValue)) << std::endl;
 
             return ttValue;
         }
