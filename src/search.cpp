@@ -1512,7 +1512,7 @@ moves_loop: // When in check, search starts from here
     if (  !PvNode
         && ss->ttHit
         && tte->depth() >= ttDepth
-        && abs(ttValue) <= VALUE_KNOWN_WIN
+        && abs(ttValue) <= VALUE_TB_WIN_IN_MAX_PLY
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
         return ttValue;
