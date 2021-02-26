@@ -725,7 +725,7 @@ namespace {
             if (abs(ttValue) <= VALUE_TB_WIN_IN_MAX_PLY - MAX_PLY)
                 return ttValue;
             else if (ttValue >= VALUE_TB_WIN_IN_MAX_PLY) {
-                Value V = search<NonPV>(pos, ss, VALUE_TB_WIN_IN_MAX_PLY - 1, VALUE_TB_WIN_IN_MAX_PLY, depth, cutNode, true);
+                Value V = search<NonPV>(pos, ss, VALUE_TB_WIN_IN_MAX_PLY - 1, VALUE_TB_WIN_IN_MAX_PLY, std::min(depth, 5), cutNode, true);
 
                 if (V >= VALUE_TB_WIN_IN_MAX_PLY)
                     return V;
