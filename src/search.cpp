@@ -721,12 +721,12 @@ namespace {
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90){
-            if (abs(ttValue) <= VALUE_TB_WIN_IN_MAX_PLY - MAX_PLY)
+            if (abs(ttValue) < VALUE_KNOWN_WIN)
                 return ttValue;
-            else if (ttValue >= VALUE_TB_WIN_IN_MAX_PLY) {
-                Value V = search<NonPV>(pos, ss, VALUE_TB_WIN_IN_MAX_PLY - 1, VALUE_TB_WIN_IN_MAX_PLY, depth, cutNode, true);
+            else if (ttValue >= VALUE_KNOWN_WIN) {
+                Value V = search<NonPV>(pos, ss, VALUE_KNOWN_WIN - 1, VALUE_KNOWN_WIN, depth, cutNode, true);
 
-                if (V >= VALUE_TB_WIN_IN_MAX_PLY)
+                if (V >= VALUE_KNOWN_WIN)
                     return V;
             }
         }
