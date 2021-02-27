@@ -725,6 +725,7 @@ namespace {
     } else if ( depth >= 4
         && !PvNode
         && ss->ttHit
+        && tte->depth() >= depth - 3
         && ttValue < alpha - 200 - 50 * depth
         && tte->bound() & BOUND_UPPER)
             depth--;
