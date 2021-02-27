@@ -54,6 +54,8 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+constexpr int Tc[6] = {1, 0, 0, 0, 0, 0};
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -832,7 +834,7 @@ namespace {
 
     // Step 7. Futility pruning: child node (~50 Elo)
     if (   !PvNode
-        &&  depth < 9
+        &&  depth < 9 + Tc[0]
         &&  eval - futility_margin(depth, improving) >= beta
         &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
@@ -964,7 +966,7 @@ namespace {
 
     // Step 10. If the position is not in TT, decrease depth by 2
     if (   PvNode
-        && depth >= 6
+        && depth >= 6 + Tc[1]
         && !ttMove)
         depth -= 2;
 
@@ -976,7 +978,7 @@ moves_loop: // When in check, search starts from here
     probCutBeta = beta + 400;
     if (   ss->inCheck
         && !PvNode
-        && depth >= 4
+        && depth >= 4 + Tc[2]
         && ttCapture
         && (tte->bound() & BOUND_LOWER)
         && tte->depth() >= depth - 3
@@ -1086,7 +1088,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Futility pruning: parent node (~5 Elo)
-              if (   lmrDepth < 7
+              if (   lmrDepth < 7 + Tc[3]
                   && !ss->inCheck
                   && ss->staticEval + 174 + 157 * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
@@ -1108,7 +1110,7 @@ moves_loop: // When in check, search starts from here
       // then that move is singular and should be extended. To verify this we do
       // a reduced search on all the other moves but the ttMove and if the
       // result is lower than ttValue minus a margin, then we will extend the ttMove.
-      if (    depth >= 7
+      if (    depth >= 7 + Tc[4]
           &&  move == ttMove
           && !rootNode
           && !excludedMove // Avoid recursive singular search
@@ -1182,7 +1184,7 @@ moves_loop: // When in check, search starts from here
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
-      if (    depth >= 3
+      if (    depth >= 3 + Tc[5]
           &&  moveCount > 1 + 2 * rootNode
           && (  !captureOrPromotion
               || moveCountPruning
