@@ -726,7 +726,7 @@ namespace {
     } else if (!PvNode
             && !cutoff
             && ss->ttHit
-            && tte->depth() >= 1
+            && tte->depth() >= 2
             && ttValue >= VALUE_TB_WIN_IN_MAX_PLY
             && tte->bound() & BOUND_LOWER)
     {
