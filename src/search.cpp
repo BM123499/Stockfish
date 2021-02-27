@@ -722,7 +722,12 @@ namespace {
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
             return ttValue;
-    }
+    } else if ( depth >= 4
+        && !PvNode
+        && ss->ttHit
+        && ttValue < alpha - 200 - 50 * depth
+        && tte->bound() & BOUND_UPPER)
+            depth--;
 
     // Step 5. Tablebases probe
     if (!rootNode && TB::Cardinality)
