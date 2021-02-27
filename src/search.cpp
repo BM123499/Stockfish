@@ -721,16 +721,21 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90){
-            if (abs(ttValue) <= VALUE_TB_WIN_IN_MAX_PLY - MAX_PLY)
-                return ttValue;
-            else if (ttValue >= VALUE_TB_WIN_IN_MAX_PLY) {
-                Value V = search<NonPV>(pos, ss, VALUE_TB_WIN_IN_MAX_PLY - 1, VALUE_TB_WIN_IN_MAX_PLY, std::min(depth, 5), cutNode, true);
-
-                if (V >= VALUE_TB_WIN_IN_MAX_PLY)
-                    return V;
-            }
-        }
+        if (pos.rule50_count() < 90)
+            return ttValue;
+    } else if (!PvNode
+            && !cutoff
+            && ss->ttHit
+            && tte->depth() >= 1
+            && ttValue >= VALUE_TB_WIN_IN_MAX_PLY
+            && tte->bound() & BOUND_LOWER)
+    {
+        Depth d = std::min(Depth(VALUE_MATE - abs(ttValue)), tte->depth());
+        
+        Value V = search<NonPV>(pos, ss, VALUE_TB_WIN_IN_MAX_PLY - 1, VALUE_TB_WIN_IN_MAX_PLY, std::min(d, depth - 3), cutNode, true);
+        
+        if (V >= VALUE_TB_WIN_IN_MAX_PLY)
+            return V;
     }
 
     // Step 5. Tablebases probe
