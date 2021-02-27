@@ -54,7 +54,7 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-constexpr int Tc[6] = {0, -1, 0, 0, 0, 0};
+constexpr int Tc[6] = {0, 0, 1, 0, 0, 0};
 
 namespace {
 
