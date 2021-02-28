@@ -642,7 +642,7 @@ namespace {
         // signs applies also in the opposite condition of being mated instead of giving
         // mate. In this case return a fail-high score.
 
-        if (PvNode && depth >= 3){
+        if (PvNode || depth >= 3){
             alpha = std::max(mated_in(ss->ply), alpha);
             beta = std::min(mate_in(ss->ply+1), beta);
             if (alpha >= beta)
