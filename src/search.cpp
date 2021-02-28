@@ -1044,9 +1044,7 @@ moves_loop: // When in check, search starts from here
 
       // Indicate PvNodes that will probably fail low if node was searched with non-PV search
       // at depth equal or greater to current depth and result of this search was far below alpha
-      bool likelyFailLow =    PvNode
-                           && ttMove
-                           && (tte->bound() & BOUND_UPPER)
+      bool likelyFailLow =   (tte->bound() & BOUND_UPPER)
                            && ttValue < alpha + 200 + 100 * depth
                            && tte->depth() >= depth;
 
@@ -1203,8 +1201,11 @@ moves_loop: // When in check, search starts from here
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~10 Elo)
-          if (ss->ttPv && !likelyFailLow)
+          if (PvNode && ss->ttPv && ttMove && !likelyFailLow)
               r -= 2;
+        
+          else if (!PvNode && likelyFailLow)
+              r++;
 
           // Increase reduction at root and non-PV nodes when the best move does not change frequently
           if ((rootNode || !PvNode) && thisThread->rootDepth > 10 && thisThread->bestMoveChanges <= 2)
