@@ -861,7 +861,7 @@ namespace {
 
         pos.do_null_move(st);
 
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, std::min(Depth(VALUE_MATE - alpha), depth-R), !cutNode);
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, std::min(Depth(VALUE_MATE - beta + 1), depth-R), !cutNode);
 
         pos.undo_null_move();
 
@@ -881,7 +881,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, std::min(Depth(VALUE_MATE - alpha), depth-R), false);
+            Value v = search<NonPV>(pos, ss, beta-1, beta, std::min(Depth(VALUE_MATE - beta + 1), depth-R), false);
 
             thisThread->nmpMinPly = 0;
 
@@ -1123,7 +1123,7 @@ moves_loop: // When in check, search starts from here
           Value singularBeta = ttValue - ((formerPv + 4) * depth) / 2;
           Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
           ss->excludedMove = move;
-          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, std::min(Depth(VALUE_MATE - alpha), singularDepth), cutNode);
+          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
@@ -1145,7 +1145,7 @@ moves_loop: // When in check, search starts from here
           else if (ttValue >= beta)
           {
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, beta - 1, beta, std::min(Depth(VALUE_MATE - alpha), (depth + 3) / 2), cutNode);
+              value = search<NonPV>(pos, ss, beta - 1, beta, std::min(Depth(VALUE_MATE - beta + 1), (depth + 3) / 2), cutNode);
               ss->excludedMove = MOVE_NONE;
 
               if (value >= beta)
