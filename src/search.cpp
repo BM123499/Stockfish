@@ -570,6 +570,7 @@ namespace {
 
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
+    const bool MateSeq  = PvNode && (alpha >= VALUE_MATE_IN_MAX_PLY || beta <= VALUE_MATED_IN_MAX_PLY);
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
     // Check if we have an upcoming move which draws by repetition, or
@@ -842,6 +843,7 @@ namespace {
 
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
+        && !MateSeq
         && (ss-1)->currentMove != MOVE_NULL
         && (ss-1)->statScore < 24185
         &&  eval >= beta
@@ -1114,6 +1116,7 @@ moves_loop: // When in check, search starts from here
       if (    depth >= 7
           &&  move == ttMove
           && !rootNode
+          && !MateSeq
           && !excludedMove // Avoid recursive singular search
        /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
           &&  abs(ttValue) < VALUE_KNOWN_WIN
@@ -1186,6 +1189,7 @@ moves_loop: // When in check, search starts from here
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
       if (    depth >= 3
+          && !MateSeq
           &&  moveCount > 1 + 2 * rootNode
           && (  !captureOrPromotion
               || moveCountPruning
@@ -1288,7 +1292,7 @@ moves_loop: // When in check, search starts from here
       }
       else
       {
-          doFullDepthSearch = !PvNode || moveCount > 1;
+          doFullDepthSearch = !PvNode || (!MateSeq && moveCount > 1);
           didLMR = false;
       }
 
@@ -1310,7 +1314,7 @@ moves_loop: // When in check, search starts from here
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
+      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta)) || MateSeq))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
