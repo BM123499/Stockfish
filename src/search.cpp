@@ -1467,10 +1467,12 @@ moves_loop: // When in check, search starts from here
     bool pvHit, givesCheck, captureOrPromotion;
     int moveCount;
 
-    alpha = std::max(mated_in(ss->ply), alpha);
-    beta = std::min(mate_in(ss->ply+1), beta);
-    if (alpha >= beta)
-        return alpha;
+    if constexpr (PvNode){
+        alpha = std::max(mated_in(ss->ply), alpha);
+        beta = std::min(mate_in(ss->ply+1), beta);
+        if (alpha >= beta)
+            return alpha;
+    }
 
     if (PvNode)
     {
