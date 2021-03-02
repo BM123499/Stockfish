@@ -1378,8 +1378,8 @@ moves_loop: // When in check, search starts from here
                   break;
               }
               
-              if (abs(bestValue) >= VALUE_MATE_IN_MAX_PLY)
-                  depth = std::min(depth, Depth(VALUE_MATE - abs(bestValue) - ss->ply));
+              if (bestValue >= VALUE_MATE_IN_MAX_PLY)
+                  depth = std::min(depth, Depth(VALUE_MATE - bestValue - ss->ply));
 
           }
       }
