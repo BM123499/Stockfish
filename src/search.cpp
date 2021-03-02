@@ -644,7 +644,8 @@ namespace {
         alpha = std::max(mated_in(ss->ply), alpha);
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
-            return pos.non_pawn_material(pos.side_to_move()) - pos.non_pawn_material(~pos.side_to_move());
+            return pos.non_pawn_material(pos.side_to_move()) - pos.non_pawn_material(~pos.side_to_move())
+                +  PawnValueMg * (pos.count<PAWN>(pos.side_to_move()) - pos.count<PAWN>(~pos.side_to_move()));
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
