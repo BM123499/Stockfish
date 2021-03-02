@@ -644,7 +644,7 @@ namespace {
         alpha = std::max(mated_in(ss->ply), alpha);
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
-            return alpha;
+            return evaluate(pos);
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
