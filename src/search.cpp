@@ -1365,6 +1365,9 @@ moves_loop: // When in check, search starts from here
           {
               bestMove = move;
 
+              if (bestValue >= VALUE_MATE_IN_MAX_PLY)
+                  depth = std::min(depth, Depth(VALUE_MATE - bestValue - ss->ply));
+
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
