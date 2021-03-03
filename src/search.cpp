@@ -563,6 +563,12 @@ void Thread::search() {
 
 namespace {
 
+  inline int auxiliar(Value alpha, Value beta){
+      return  beta < VALUE_MATED_IN_MAX_PLY ? VALUE_MATE +  beta
+           : alpha >  VALUE_MATE_IN_MAX_PLY ? VALUE_MATE - alpha - 1
+                                            : MAX_PLY;
+  }
+
   // search<>() is the main search function for both PV and non-PV nodes
 
   template <NodeType NT>
@@ -626,25 +632,22 @@ namespace {
     if (PvNode && thisThread->selDepth < ss->ply + 1)
         thisThread->selDepth = ss->ply + 1;
 
+    if (PvNode)
+        thisThread->maxPly = auxiliar(alpha, beta);
+
+    assert((std::max(mated_in(ss->ply), alpha) >= std::min(mate_in(ss->ply+1), beta)) 
+        == (ss->ply >= thisThread->maxPly && ss->ply < MAX_PLY));
+
     if (!rootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (   Threads.stop.load(std::memory_order_relaxed)
-            || pos.is_draw(ss->ply)
-            || ss->ply >= MAX_PLY)
-            return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos)
-                                                        : value_draw(pos.this_thread());
-
-        // Step 3. Mate distance pruning. Even if we mate at the next move our score
-        // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
-        // a shorter mate was found upward in the tree then there is no need to search
-        // because we will never beat the current alpha. Same logic but with reversed
-        // signs applies also in the opposite condition of being mated instead of giving
-        // mate. In this case return a fail-high score.
-        alpha = std::max(mated_in(ss->ply), alpha);
-        beta = std::min(mate_in(ss->ply+1), beta);
-        if (alpha >= beta)
-            return alpha;
+        if (ss->ply >= thisThread->maxPly)
+            return ss->ply < MAX_PLY ? std::max(mated_in(ss->ply), alpha)
+                : !ss->inCheck       ? evaluate(pos)
+                                     : value_draw(pos.this_thread());
+        else if (   Threads.stop.load(std::memory_order_relaxed)
+            || pos.is_draw(ss->ply))
+            return value_draw(pos.this_thread());
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
@@ -1115,7 +1118,9 @@ moves_loop: // When in check, search starts from here
        /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
           &&  abs(ttValue) < VALUE_KNOWN_WIN
           && (tte->bound() & BOUND_LOWER)
-          &&  tte->depth() >= depth - 3)
+          &&  tte->depth() >= depth - 3
+          &&   beta <  VALUE_MATE_IN_MAX_PLY
+          &&  alpha > VALUE_MATED_IN_MAX_PLY)
       {
           Value singularBeta = ttValue - ((formerPv + 4) * depth) / 2;
           Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
@@ -1277,7 +1282,15 @@ moves_loop: // When in check, search starts from here
           // allow these nodes to be searched deeper than the pv (up to 4 plies deeper).
           Depth d = std::clamp(newDepth - r, 1, newDepth + ((ss+1)->distanceFromPv <= 4));
 
+          if constexpr (PvNode)
+              if (alpha < VALUE_MATED_IN_MAX_PLY)
+                  thisThread->maxPly = VALUE_MATE + alpha + 1;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          if constexpr (PvNode)
+              if (alpha < VALUE_MATED_IN_MAX_PLY)
+                  thisThread->maxPly = auxiliar(alpha, beta);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1292,7 +1305,15 @@ moves_loop: // When in check, search starts from here
       // Step 17. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          if constexpr (PvNode)
+              if (alpha < VALUE_MATED_IN_MAX_PLY)
+                  thisThread->maxPly = VALUE_MATE + alpha + 1;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+
+          if constexpr (PvNode)
+              if (alpha < VALUE_MATED_IN_MAX_PLY)
+                  thisThread->maxPly = auxiliar(alpha, beta);
 
           // If the move passed LMR update its stats
           if (didLMR && !captureOrPromotion)
@@ -1368,8 +1389,12 @@ moves_loop: // When in check, search starts from here
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
-              if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              if (PvNode && value < beta){ // Update alpha! Always alpha < beta
                   alpha = value;
+
+                  if (value > VALUE_MATE_IN_MAX_PLY)
+                      thisThread->maxPly = VALUE_MATE - value - 1;
+              }
               else
               {
                   assert(value >= beta); // Fail high
@@ -1480,10 +1505,19 @@ moves_loop: // When in check, search starts from here
     ss->inCheck = pos.checkers();
     moveCount = 0;
 
+    if constexpr (PvNode)
+        thisThread->maxPly = auxiliar(alpha, beta);
+
+    assert((std::max(mated_in(ss->ply), alpha) >= std::min(mate_in(ss->ply+1), beta)) 
+        == (ss->ply >= thisThread->maxPly && ss->ply < MAX_PLY));
+
     // Check for an immediate draw or maximum ply reached
-    if (   pos.is_draw(ss->ply)
-        || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos) : VALUE_DRAW;
+    if (ss->ply >= thisThread->maxPly)
+        return ss->ply < MAX_PLY ? std::max(mated_in(ss->ply), alpha)
+            : !ss->inCheck       ? evaluate(pos)
+                                 : VALUE_DRAW;
+    else if (pos.is_draw(ss->ply))
+        return VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
