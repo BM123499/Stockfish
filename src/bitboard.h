@@ -75,7 +75,6 @@ extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard RayBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
-extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
@@ -215,18 +214,10 @@ inline Bitboard line_bb(Square s1, Square s2) {
 }
 
 
-/// between_bb() returns a bitboard representing squares that are linearly
-/// between the two given squares (excluding the given squares). If the given
-/// squares are not on a same file/rank/diagonal, we return 0. For instance,
-/// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5 and E6.
-
-inline Bitboard between_bb(Square s1, Square s2) {
-  assert(is_ok(s1) && is_ok(s2));
-  return BetweenBB[s1][s2];
-}
-
-
-// same as between_bb(), but includes checkersq
+/// ray_bb() returns a bitboard representing squares that are linearly
+/// between the two given squares (excluding last given squares and including first).
+/// If the given squares are not on a same file/rank/diagonal, we return 0. For instance,
+/// ray_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5 and F7.
 inline Bitboard ray_bb(Square ksq, Square checkersq){
   assert(is_ok(ksq) && is_ok(checkersq));
   return RayBB[ksq][checkersq];
