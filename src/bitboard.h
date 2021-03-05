@@ -74,6 +74,7 @@ extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
+extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
@@ -219,8 +220,8 @@ inline Bitboard line_bb(Square s1, Square s2) {
 /// between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5 and E6.
 
 inline Bitboard between_bb(Square s1, Square s2) {
-  Bitboard b = line_bb(s1, s2) & ((AllSquares << s1) ^ (AllSquares << s2));
-  return b & (b - 1); //exclude lsb
+  assert(is_ok(s1) && is_ok(s2));
+  return BetweenBB[s1][s2];
 }
 
 
