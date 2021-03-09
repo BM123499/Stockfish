@@ -143,6 +143,9 @@ Move MovePicker::select(Pred filter) {
   return MOVE_NONE;
 }
 
+int T1 = -3000, T2 = 0;
+TUNE(SetRange(-7000, 1000), T1);
+TUNE(SetRange(-4000, 4000), T2);
 /// MovePicker::next_move() is the most important method of the MovePicker class. It
 /// returns a new pseudo-legal move every time it is called until there are no more
 /// moves left, picking the move with the highest score from a list of generated moves.
