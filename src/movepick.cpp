@@ -215,9 +215,8 @@ top:
                                && *cur != refutations[1].move
                                && *cur != refutations[2].move;};
 
-          Move m = depth > 2 ? select<Next>(f) : select<Best>(f);
-          if (m)
-              return m;
+          if (depth > 2 ? select<Next>(f) : select<Best>(f))
+              return *(cur - 1);
       }
 
       // Prepare the pointers to loop over the bad captures
