@@ -905,7 +905,6 @@ void Position::undo_move(Move m) {
   Color us = sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Piece pc = piece_on(to);
 
   assert(empty(from) || type_of(m) == CASTLING);
   assert(type_of(st->capturedPiece) != KING);
@@ -913,12 +912,11 @@ void Position::undo_move(Move m) {
   if (type_of(m) == PROMOTION)
   {
       assert(relative_rank(us, to) == RANK_8);
-      assert(type_of(pc) == promotion_type(m));
-      assert(type_of(pc) >= KNIGHT && type_of(pc) <= QUEEN);
+      assert(type_of(piece_on(to)) == promotion_type(m));
+      assert(type_of(piece_on(to)) >= KNIGHT && type_of(piece_on(to)) <= QUEEN);
 
       remove_piece(to);
-      pc = make_piece(us, PAWN);
-      put_piece(pc, to);
+      put_piece(make_piece(us, PAWN), to);
   }
 
   if (type_of(m) == CASTLING)
@@ -938,7 +936,7 @@ void Position::undo_move(Move m) {
           {
               capsq -= pawn_push(us);
 
-              assert(type_of(pc) == PAWN);
+              assert(type_of(piece_on(from)) == PAWN);
               assert(to == st->previous->epSquare);
               assert(relative_rank(us, to) == RANK_6);
               assert(piece_on(capsq) == NO_PIECE);
