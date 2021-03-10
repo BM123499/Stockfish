@@ -202,18 +202,23 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
+          if (depth > 2)
+              partial_insertion_sort(cur, endMoves, -3000 * depth);
       }
 
       ++stage;
       [[fallthrough]];
 
   case QUIET:
-      if (   !skipQuiets
-          && select<Next>([&](){return   *cur != refutations[0].move
-                                      && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
-          return *(cur - 1);
+      if (!skipQuiets){
+          auto f = [&](){return   *cur != refutations[0].move
+                               && *cur != refutations[1].move
+                               && *cur != refutations[2].move;};
+
+          Move m = depth > 2 ? select<Next>(f) : select<Best>(f);
+          if (m)
+              return m;
+      }
 
       // Prepare the pointers to loop over the bad captures
       cur = moves;
