@@ -113,7 +113,7 @@ void MovePicker::score() {
                    +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
                    + (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0)
-                   + (1 << 28) * (type_of(m) == PROMOTION);
+                   - (1 << 28) * (type_of(m) == PROMOTION);
 
       else // Type == EVASIONS
       {
