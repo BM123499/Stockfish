@@ -30,7 +30,7 @@ class Position;
 namespace Eval {
 
   std::string trace(const Position& pos);
-  Value evaluate(const Position& pos);
+  Value evaluate(bool mateSeq, const Position& pos);
 
   extern bool useNNUE;
   extern std::string eval_file_loaded;

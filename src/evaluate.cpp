@@ -1044,7 +1044,7 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
-Value Eval::evaluate(const Position& pos) {
+Value Eval::evaluate(bool mateSeq, const Position& pos) {
 
   Value v;
 
@@ -1066,7 +1066,7 @@ Value Eval::evaluate(const Position& pos) {
 
       // Use classical evaluation for really low piece endgames.
       // The most critical case is a bishop + A/H file pawn vs naked king draw.
-      bool strongClassical = pos.non_pawn_material() < 2 * RookValueMg && pos.count<PAWN>() < 2;
+      bool strongClassical = mateSeq || (pos.non_pawn_material() < 2 * RookValueMg && pos.count<PAWN>() < 2);
 
       v = classical || strongClassical ? Evaluation<NO_TRACE>(pos).value() : adjusted_NNUE();
 
@@ -1142,7 +1142,7 @@ std::string Eval::trace(const Position& pos) {
       ss << "\nNNUE evaluation:      " << to_cp(v) << " (white side)\n";
   }
 
-  v = evaluate(pos);
+  v = evaluate(false, pos);
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "\nFinal evaluation:     " << to_cp(v) << " (white side)\n";
 

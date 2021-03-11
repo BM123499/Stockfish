@@ -609,6 +609,7 @@ namespace {
          ttCapture, singularQuietLMR;
     Piece movedPiece;
     int moveCount, captureCount, quietCount;
+    bool mateSeq = false;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -630,23 +631,26 @@ namespace {
 
     if (!rootNode)
     {
-        // Step 2. Check for aborted search and immediate draw
-        if (   Threads.stop.load(std::memory_order_relaxed)
-            || pos.is_draw(ss->ply)
-            || ss->ply >= MAX_PLY)
-            return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos)
-                                                        : value_draw(pos.this_thread());
-
-        // Step 3. Mate distance pruning. Even if we mate at the next move our score
+        // Step 2. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
         // a shorter mate was found upward in the tree then there is no need to search
         // because we will never beat the current alpha. Same logic but with reversed
         // signs applies also in the opposite condition of being mated instead of giving
         // mate. In this case return a fail-high score.
-        alpha = std::max(mated_in(ss->ply), alpha);
-        beta = std::min(mate_in(ss->ply+1), beta);
-        if (alpha >= beta)
-            return alpha;
+        if (alpha >= VALUE_TB_WIN_IN_MAX_PLY || beta <= VALUE_TB_LOSS_IN_MAX_PLY){
+            alpha = std::max(mated_in(ss->ply), alpha);
+            beta = std::min(mate_in(ss->ply+1), beta);
+            if (alpha >= beta)
+                return alpha;
+            mateSeq = true;
+        }
+        
+        // Step 3. Check for aborted search and immediate draw
+        if (   Threads.stop.load(std::memory_order_relaxed)
+            || pos.is_draw(ss->ply)
+            || ss->ply >= MAX_PLY)
+            return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(mateSeq, pos)
+                                                        : value_draw(pos.this_thread());
     }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
@@ -793,7 +797,7 @@ namespace {
         // Never assume anything about values stored in TT
         ss->staticEval = eval = tte->eval();
         if (eval == VALUE_NONE)
-            ss->staticEval = eval = evaluate(pos);
+            ss->staticEval = eval = evaluate(mateSeq, pos);
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)
@@ -809,7 +813,7 @@ namespace {
         // In case of null move search use previous static eval with a different sign
         // and addition of two tempos
         if ((ss-1)->currentMove != MOVE_NULL)
-            ss->staticEval = eval = evaluate(pos);
+            ss->staticEval = eval = evaluate(mateSeq, pos);
         else
             ss->staticEval = eval = -(ss-1)->staticEval + 2 * Tempo;
 
@@ -1468,6 +1472,7 @@ moves_loop: // When in check, search starts from here
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool pvHit, givesCheck, captureOrPromotion;
     int moveCount;
+    bool mateSeq = false;
 
     if (PvNode)
     {
@@ -1482,10 +1487,18 @@ moves_loop: // When in check, search starts from here
     ss->inCheck = pos.checkers();
     moveCount = 0;
 
+    if (alpha >= VALUE_TB_WIN_IN_MAX_PLY || beta <= VALUE_TB_LOSS_IN_MAX_PLY){
+        alpha = std::max(mated_in(ss->ply), alpha);
+        beta = std::min(mate_in(ss->ply+1), beta);
+        if (alpha >= beta)
+            return alpha;
+        mateSeq = true;
+    }
+
     // Check for an immediate draw or maximum ply reached
     if (   pos.is_draw(ss->ply)
         || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos) : VALUE_DRAW;
+        return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(mateSeq, pos) : VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
@@ -1521,7 +1534,7 @@ moves_loop: // When in check, search starts from here
         {
             // Never assume anything about values stored in TT
             if ((ss->staticEval = bestValue = tte->eval()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos);
+                ss->staticEval = bestValue = evaluate(mateSeq, pos);
 
             // Can ttValue be used as a better position evaluation?
             if (    ttValue != VALUE_NONE
@@ -1532,7 +1545,7 @@ moves_loop: // When in check, search starts from here
             // In case of null move search use previous static eval with a different sign
             // and addition of two tempos
             ss->staticEval = bestValue =
-            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
+            (ss-1)->currentMove != MOVE_NULL ? evaluate(mateSeq, pos)
                                              : -(ss-1)->staticEval + 2 * Tempo;
 
         // Stand pat. Return immediately if static value is at least beta
