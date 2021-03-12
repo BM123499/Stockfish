@@ -1081,6 +1081,8 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color stm = color_of(piece_on(from));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
+  Bitboard BishopAttackers = attacks_bb<BISHOP>(to) & pieces(BISHOP, QUEEN);
+  Bitboard RookAttackers   = attacks_bb<  ROOK>(to) & pieces(  ROOK, QUEEN);
   int res = 1;
 
   while (true)
@@ -1110,7 +1112,10 @@ bool Position::see_ge(Move m, Value threshold) const {
               break;
 
           occupied ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+          if (BishopAttackers){
+              attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+              BishopAttackers &= ~attackers;
+          }
       }
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
@@ -1127,7 +1132,10 @@ bool Position::see_ge(Move m, Value threshold) const {
               break;
 
           occupied ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+          if (BishopAttackers){
+              attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+              BishopAttackers &= ~attackers;
+          }
       }
 
       else if ((bb = stmAttackers & pieces(ROOK)))
@@ -1136,7 +1144,10 @@ bool Position::see_ge(Move m, Value threshold) const {
               break;
 
           occupied ^= lsb(bb);
-          attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
+          if (RookAttackers){
+              attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
+              RookAttackers &= ~attackers;
+          }
       }
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
@@ -1145,8 +1156,16 @@ bool Position::see_ge(Move m, Value threshold) const {
               break;
 
           occupied ^= lsb(bb);
-          attackers |=  (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
-                      | (attacks_bb<ROOK  >(to, occupied) & pieces(ROOK  , QUEEN));
+
+          if (BishopAttackers){
+              attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+              BishopAttackers &= ~attackers;
+          }
+
+          if (RookAttackers){
+              attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
+              RookAttackers &= ~attackers;
+          }          
       }
 
       else // KING
