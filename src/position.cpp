@@ -1102,6 +1102,9 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       res ^= 1;
 
+      if (stmAttackers & blockers_for_king(~stm))
+          break;
+
       // Locate and remove the next least valuable attacker, and add to
       // the bitboard 'attackers' any X-ray attackers behind it.
       if ((bb = stmAttackers & pieces(PAWN)))
