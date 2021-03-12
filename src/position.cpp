@@ -1080,9 +1080,9 @@ bool Position::see_ge(Move m, Value threshold) const {
   Bitboard occupied = pieces() ^ from ^ to;
   Color stm = color_of(piece_on(from));
   Bitboard attackers = attackers_to(to, occupied);
+  Bitboard BishopAttackers = attacks_bb<BISHOP>(to) & pieces(BISHOP, QUEEN) & ~attackers;
+  Bitboard RookAttackers   = attacks_bb<  ROOK>(to) & pieces(  ROOK, QUEEN) & ~attackers;
   Bitboard stmAttackers, bb;
-  Bitboard BishopAttackers = attacks_bb<BISHOP>(to) & pieces(BISHOP, QUEEN);
-  Bitboard RookAttackers   = attacks_bb<  ROOK>(to) & pieces(  ROOK, QUEEN);
   int res = 1;
 
   while (true)
