@@ -1079,7 +1079,12 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   Bitboard occupied = pieces() ^ from ^ to;
   Color stm = color_of(piece_on(from));
-  Bitboard attackers = attackers_to(to, occupied);
+  Bitboard attackers =    (pawn_attacks_bb(BLACK, to)       & pieces(WHITE, PAWN))
+                        | (pawn_attacks_bb(WHITE, to)       & pieces(BLACK, PAWN))
+                        | (attacks_bb<KNIGHT>(to)           & pieces(KNIGHT))
+                        | (attacks_bb<  ROOK>(to, pieces() ^ pieces(  ROOK, QUEEN)) & pieces(  ROOK, QUEEN))
+                        | (attacks_bb<BISHOP>(to, pieces() ^ pieces(BISHOP, QUEEN)) & pieces(BISHOP, QUEEN))
+                        | (attacks_bb<KING>(to)             & pieces(KING));;
   Bitboard stmAttackers, bb;
   int res = 1;
 
@@ -1109,8 +1114,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = PawnValueMg - swap) < res)
               break;
 
-          occupied ^= stm == BLACK ? msb(bb) : lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
@@ -1118,7 +1122,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = KnightValueMg - swap) < res)
               break;
 
-          occupied ^= stm == BLACK ? msb(bb) : lsb(bb);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
@@ -1126,8 +1130,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = BishopValueMg - swap) < res)
               break;
 
-          occupied ^= stm == BLACK ? msb(bb) : lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(ROOK)))
@@ -1135,8 +1138,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = RookValueMg - swap) < res)
               break;
 
-          occupied ^= stm == BLACK ? msb(bb) : lsb(bb);
-          attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
@@ -1144,9 +1146,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = QueenValueMg - swap) < res)
               break;
 
-          occupied ^= stm == BLACK ? msb(bb) : lsb(bb);
-          attackers |=  (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
-                      | (attacks_bb<ROOK  >(to, occupied) & pieces(ROOK  , QUEEN));
+          occupied ^= lsb(bb);
       }
 
       else // KING
