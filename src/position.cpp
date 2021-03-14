@@ -517,15 +517,28 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 
+  switch (type_of(m)){
+  case NORMAL:
+      // If the moving piece is a king, check whether the destination square is
+      // attacked by the opponent.
+      if (type_of(piece_on(from)) == KING)
+          return !(attackers_to(to) & pieces(~us));
+      [[fallthrough]];
+  case PROMOTION:
+      // A non-king move is legal if and only if it is not pinned or it
+      // is moving along the ray towards or away from the king.
+      return !(blockers_for_king(us) & from)
+          || aligned(from, to, square<KING>(us));
+
   // st->previous->blockersForKing consider capsq as empty.
   // If pinned, it has to move along the king ray.
-  if (type_of(m) == EN_PASSANT)
+  case EN_PASSANT:
       return   !(st->previous->blockersForKing[sideToMove] & from)
             || aligned(from, to, square<KING>(us));
 
   // Castling moves generation does not check if the castling path is clear of
   // enemy attacks, it is delayed at a later time: now!
-  if (type_of(m) == CASTLING)
+  default: //CASTLING
   {
       // After castling, the rook and king final positions are the same in
       // Chess960 as they would be in standard chess.
@@ -540,16 +553,7 @@ bool Position::legal(Move m) const {
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
       return !chess960 || !(blockers_for_king(us) & to_sq(m));
   }
-
-  // If the moving piece is a king, check whether the destination square is
-  // attacked by the opponent.
-  if (type_of(piece_on(from)) == KING)
-      return !(attackers_to(to) & pieces(~us));
-
-  // A non-king move is legal if and only if it is not pinned or it
-  // is moving along the ray towards or away from the king.
-  return !(blockers_for_king(us) & from)
-      || aligned(from, to, square<KING>(us));
+  }
 }
 
 
