@@ -652,7 +652,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   case PROMOTION:
-      return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
+      return attacks_bb(promotion_type(m), to, pieces() ^ from) & pieces(~sideToMove, KING);
 
   // The double-pushed pawn blocked a check? En Passant will remove the blocker.
   // The only discovery check that wasn't handle is through capsq and fromsq
@@ -666,8 +666,8 @@ bool Position::gives_check(Move m) const {
   default: //CASTLING
   {
       // Castling is encoded as 'king captures the rook'
-      Square ksq = square<KING>(~sideToMove);
-      Square rto = relative_square(sideToMove, to > from ? SQ_F1 : SQ_D1);
+      Bitboard ksq = pieces(~sideToMove, KING);
+      Square   rto = relative_square(sideToMove, to > from ? SQ_F1 : SQ_D1);
 
       return   (attacks_bb<ROOK>(rto) & ksq)
             && (attacks_bb<ROOK>(rto, pieces() ^ from ^ to) & ksq);
