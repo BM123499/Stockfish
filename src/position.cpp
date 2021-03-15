@@ -1106,7 +1106,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       // the bitboard 'attackers' any X-ray attackers behind it.
       if ((bb = stmAttackers & pieces(PAWN)))
       {
-          if ((swap = PawnValueMg - swap) < 1)
+          if ((swap = PawnValueMg - swap) < 0)
               break;
 
           occupied ^= lsb(bb);
@@ -1115,7 +1115,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
       {
-          if ((swap = KnightValueMg - swap) < 1)
+          if ((swap = KnightValueMg - swap) < 0)
               break;
 
           occupied ^= lsb(bb);
@@ -1123,7 +1123,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
       {
-          if ((swap = BishopValueMg - swap) < 1)
+          if ((swap = BishopValueMg - swap) < 0)
               break;
 
           occupied ^= lsb(bb);
@@ -1132,7 +1132,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(ROOK)))
       {
-          if ((swap = RookValueMg - swap) < 1)
+          if ((swap = RookValueMg - swap) < 0)
               break;
 
           occupied ^= lsb(bb);
@@ -1141,7 +1141,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
       {
-          if ((swap = QueenValueMg - swap) < 1)
+          if ((swap = QueenValueMg - swap) < 0)
               break;
 
           occupied ^= lsb(bb);
