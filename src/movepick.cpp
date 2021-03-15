@@ -25,7 +25,7 @@ namespace Stockfish {
 namespace {
 
   enum Stages {
-    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, BAD_CAPTURE,
+    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, BAD_CAPTURE_INIT, BAD_CAPTURE,
     EVASION_TT, EVASION_INIT, EVASION,
     PROBCUT_TT, PROBCUT_INIT, PROBCUT,
     QSEARCH_TT, QCAPTURE_INIT, QCAPTURE, QCHECK_INIT, QCHECK
@@ -221,9 +221,14 @@ top:
 
       ++stage;
       [[fallthrough]];
-
+  
+  case BAD_CAPTURE_INIT:
+      score<CAPTURES>();
+      ++stage;
+      [[fallthrough]];
+    
   case BAD_CAPTURE:
-      return select<Next>([](){ return true; });
+      return select<Best>([](){ return true; });
 
   case EVASION_INIT:
       cur = moves;
