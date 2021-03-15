@@ -1081,7 +1081,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color stm = color_of(piece_on(from));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
-  int res = 1;
+  bool res = true;
 
   while (true)
   {
@@ -1100,13 +1100,13 @@ bool Position::see_ge(Move m, Value threshold) const {
       if (!stmAttackers)
           break;
 
-      res ^= 1;
+      res = !res;
 
       // Locate and remove the next least valuable attacker, and add to
       // the bitboard 'attackers' any X-ray attackers behind it.
       if ((bb = stmAttackers & pieces(PAWN)))
       {
-          if ((swap = PawnValueMg - swap) < res)
+          if ((swap = PawnValueMg - swap) < 1)
               break;
 
           occupied ^= lsb(bb);
@@ -1115,7 +1115,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
       {
-          if ((swap = KnightValueMg - swap) < res)
+          if ((swap = KnightValueMg - swap) < 1)
               break;
 
           occupied ^= lsb(bb);
@@ -1123,7 +1123,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
       {
-          if ((swap = BishopValueMg - swap) < res)
+          if ((swap = BishopValueMg - swap) < 1)
               break;
 
           occupied ^= lsb(bb);
@@ -1132,7 +1132,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(ROOK)))
       {
-          if ((swap = RookValueMg - swap) < res)
+          if ((swap = RookValueMg - swap) < 1)
               break;
 
           occupied ^= lsb(bb);
@@ -1141,7 +1141,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
       {
-          if ((swap = QueenValueMg - swap) < res)
+          if ((swap = QueenValueMg - swap) < 1)
               break;
 
           occupied ^= lsb(bb);
@@ -1152,10 +1152,10 @@ bool Position::see_ge(Move m, Value threshold) const {
       else // KING
            // If we "capture" with the king but opponent still has attackers,
            // reverse the result.
-          return (attackers & ~pieces(stm)) ? res ^ 1 : res;
+          return (attackers & ~pieces(stm)) ? !res : res;
   }
 
-  return bool(res);
+  return res;
 }
 
 
