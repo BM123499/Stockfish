@@ -421,7 +421,7 @@ void Thread::search() {
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
           failedHighCnt = 0;
-          while (rootDepth >= 10 || !failedHighCnt)
+          while (rootDepth >= 13 || !failedHighCnt)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
               bestValue = Stockfish::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
