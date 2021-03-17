@@ -404,8 +404,11 @@ namespace {
           : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(QUEEN) ^ pos.pieces(Us, ROOK))
                          : attacks_bb<Pt>(s, pos.pieces());
 
-        if (pos.blockers_for_king(Us) & s)
-            b &= line_bb(s, pos.square<KING>(Us));
+        if (pos.blockers_for_king(Us) & s){
+            Square ksq = pos.square<KING>(Us);
+            bb = attacks_bb<KING>(ksq) & ~ray_bb(ksq, s);
+            b &= (bb ^ attacks_bb<QUEEN>(ksq, bb)) | ksq;
+        }
 
         attackedBy2[Us] |= attackedBy[Us][ALL_PIECES] & b;
         attackedBy[Us][Pt] |= b;
