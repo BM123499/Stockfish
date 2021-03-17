@@ -265,8 +265,8 @@ constexpr Bitboard passed_pawn_span(Color c, Square s) {
 /// aligned() returns true if the squares s1, s2 and s3 are aligned either on a
 /// straight or on a diagonal line.
 
-inline bool aligned(Square s1, Square s2, Square s3) {
-  return line_bb(s1, s2) & s3;
+inline bool aligned(Square ksq, Square from, Square to) {
+  return ray_bb(ksq, from) & ray_bb(ksq, to);
 }
 
 
@@ -301,7 +301,7 @@ inline Bitboard attacks_bb(Square s) {
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
-  assert((Pt != PAWN) && (is_ok(s)));
+  assert(is_ok(s));
 
   switch (Pt)
   {
