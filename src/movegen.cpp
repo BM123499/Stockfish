@@ -283,6 +283,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 
   Color us = pos.side_to_move();
   Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
+  Bitboard kingSquares = 0;
 
   while (dc)
   {
@@ -291,15 +292,26 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 
      Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
 
-     if (pt == KING)
-         b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
+     if (pt == KING){
+         kingSquares = b & ~attacks_bb<QUEEN>(pos.square<KING>(~us));
+         continue;
+     }
 
      while (b)
          *moveList++ = make_move(from, pop_lsb(&b));
   }
 
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
+  moveList = us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
+                         : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
+
+  if (kingSquares){
+      Square ksq = pos.square<KING>(us);
+
+      while (kingSquares)
+        *moveList++ = make_move(ksq, pop_lsb(&kingSquares));
+  }
+
+  return moveList;
 }
 
 
