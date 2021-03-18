@@ -192,6 +192,7 @@ private:
   int pieceCount[PIECE_NB];
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
+  Square KingSquares[COLOR_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
   int gamePly;
   Color sideToMove;
@@ -251,6 +252,10 @@ template<PieceType Pt> inline int Position::count() const {
 template<PieceType Pt> inline Square Position::square(Color c) const {
   assert(count<Pt>(c) == 1);
   return lsb(pieces(c, Pt));
+}
+
+template<> inline Square Position::square<KING>(Color c) const {
+  return KingSquares[c];
 }
 
 inline Square Position::ep_square() const {

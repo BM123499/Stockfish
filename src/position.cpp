@@ -214,6 +214,10 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
 
       else if ((idx = PieceToChar.find(token)) != string::npos) {
           put_piece(Piece(idx), sq);
+
+          if (type_of(Piece(idx)) == KING)
+              KingSquares[color_of(Piece(idx))] = sq;
+
           ++sq;
       }
   }
@@ -730,6 +734,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       captured = NO_PIECE;
   }
 
+  if (type_of(pc) == KING)
+      KingSquares[us] = to;
+
   if (captured)
   {
       Square capsq = to;
@@ -948,6 +955,9 @@ void Position::undo_move(Move m) {
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
       }
   }
+
+  if (to == KingSquares[us])
+      KingSquares[us] = from;
 
   // Finally point our state pointer back to the previous state
   st = st->previous;
