@@ -119,12 +119,12 @@ void MovePicker::score() {
               m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))] - Value(type_of(pos.moved_piece(m))))
                               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
               if (!pos.see_ge(m.move, Value(-69 * m.value / 1024)))
-                  m.value -= 1 << 28;
+                  m.value -= 1 << 27;
           }
           else
               m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                       - (1 << 27);
+                       - (1 << 28);
       }
 }
 
