@@ -68,9 +68,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 }
 
 /// MovePicker constructor for quiescence search
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
-                       const CapturePieceToHistory* cph, const PieceToHistory** ch, Square rs)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const CapturePieceToHistory* cph, Square rs)
+           : pos(p), captureHistory(cph), ttMove(ttm), recaptureSquare(rs), depth(d) {
 
   assert(d <= 0);
 
@@ -119,9 +118,8 @@ void MovePicker::score() {
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
                        - Value(type_of(pos.moved_piece(m)));
           else
-              m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                       + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                       - (1 << 28);
+              m.value = - PieceValue[MG][pos.piece_on(to_sq(m))]
+                        - (1 << 28);
       }
 }
 
