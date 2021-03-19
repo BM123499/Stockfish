@@ -1100,13 +1100,13 @@ Value Eval::evaluate(const Position& pos) {
             nnueValue += fix_FRC(pos);
 
          Color us = pos.side_to_move();
-         if (   (pos.pieces(us, KING) & CenterFiles)
+         if (   (pos.pieces(us, KING) & (FileDBB | FileEBB))
                  && !pos.castling_rights(us)
                  && (  pos.pieces(us, ROOK) 
                     & (relative_square(us, SQ_H1) | relative_square(us, SQ_A1))))
              nnueValue -= Value(61) * int(pos.non_pawn_material()) / 16384;
 
-         if (   (pos.pieces(~us, KING) & CenterFiles)
+         if (   (pos.pieces(~us, KING) & (FileDBB | FileEBB))
                  && !pos.castling_rights(~us)
                  && (  pos.pieces(~us, ROOK) 
                     & (relative_square(us, SQ_H8) | relative_square(us, SQ_A8))))
