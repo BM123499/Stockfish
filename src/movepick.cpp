@@ -118,7 +118,7 @@ void MovePicker::score() {
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
                        - Value(type_of(pos.moved_piece(m)));
           else
-              m.value = - PieceValue[MG][pos.piece_on(to_sq(m))]
+              m.value = - PieceValue[MG][pos.piece_on(from_sq(m))]
                         - (1 << 28);
       }
 }
