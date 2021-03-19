@@ -570,10 +570,6 @@ bool Position::pseudo_legal(const Move m) const {
       return checkers() ? MoveList<    EVASIONS>(*this).contains(m)
                         : MoveList<NON_EVASIONS>(*this).contains(m);
 
-  // Is not a promotion, so promotion piece must be empty
-  if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
-      return false;
-
   // If the 'from' square is not occupied by a piece belonging to the side to
   // move, the move is obviously not legal.
   if (pc == NO_PIECE || color_of(pc) != us)
