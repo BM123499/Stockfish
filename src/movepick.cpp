@@ -212,7 +212,9 @@ top:
       if (   !skipQuiets
           && select<Next>([&](){return   *cur != refutations[0].move
                                       && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
+                                      && *cur != refutations[2].move
+                                      && (pos.see_ge(*cur, Value(-69 * cur->value / 1024)) 
+                                          ? true : (*endBadCaptures++ = *cur, false));}))
           return *(cur - 1);
 
       // Prepare the pointers to loop over the bad captures
