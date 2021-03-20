@@ -213,7 +213,7 @@ top:
           && select<Next>([&](){return   *cur != refutations[0].move
                                       && *cur != refutations[1].move
                                       && *cur != refutations[2].move
-                                      && (pos.see_ge(*cur, Value(-1)) 
+                                      && (pos.see_ge(*cur, Value(-PawnValueMg-1)) 
                                           ? true : (*endBadCaptures++ = *cur, false));}))
           return *(cur - 1);
 
