@@ -1095,7 +1095,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       // Don't allow pinned pieces to attack (except the king) as long as
       // there are pinners on their original square.
       if ((bb = pinners(~stm) & occupied)){
-          Square ksq = square<KING>(stm);
+          const Square ksq = square<KING>(stm);
           while (bb)
               stmAttackers &= ~between_bb(ksq, pop_lsb(bb));
       }
