@@ -1405,7 +1405,7 @@ moves_loop: // When in check, search starts from here
     // must be a mate or a stalemate. If we are in a singular extension search then
     // return a fail low score.
 
-    assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
+    assert(moveCount || !ss->inCheck || excludedMove || !has_legal_moves(pos));
 
     if (!moveCount)
         bestValue = excludedMove ? alpha
@@ -1659,7 +1659,7 @@ moves_loop: // When in check, search starts from here
     // and no legal moves were found, it is checkmate.
     if (ss->inCheck && bestValue == -VALUE_INFINITE)
     {
-        assert(!MoveList<LEGAL>(pos).size());
+        assert(!has_legal_moves(pos));
 
         return mated_in(ss->ply); // Plies to mate from the root
     }

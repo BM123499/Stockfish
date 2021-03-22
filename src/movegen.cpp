@@ -357,4 +357,24 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   return moveList;
 }
 
+bool has_legal_moves(const Position& pos){
+  ExtMove moveList[MAX_MOVES];
+
+  Color us = pos.side_to_move();
+  Bitboard pinned = pos.blockers_for_king(us) & pos.pieces(us);
+  Square ksq = pos.square<KING>(us);
+  ExtMove *cur = moveList, *endMove;
+
+  endMove = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
+                           : generate<NON_EVASIONS>(pos, moveList);
+
+  while (cur != endMove)
+      if (  ((pinned && pinned & from_sq(*cur)) || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
+          && !pos.legal(*cur))
+          ++cur;
+      else
+          return true;
+  return false;
+}
+
 } // namespace Stockfish

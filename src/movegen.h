@@ -52,6 +52,8 @@ inline bool operator<(const ExtMove& f, const ExtMove& s) {
   return f.value < s.value;
 }
 
+bool has_legal_moves(const Position& pos);
+
 template<GenType>
 ExtMove* generate(const Position& pos, ExtMove* moveList);
 
