@@ -269,7 +269,8 @@ constexpr Bitboard passed_pawn_span(Color c, Square s) {
 /// straight or on a diagonal line.
 
 inline bool aligned(Square s1, Square s2, Square s3) {
-  return line_bb(s1, s2) & s3;
+  Bitboard *b = BetweenBB[s1];
+  return b[s2] & b[s3];
 }
 
 

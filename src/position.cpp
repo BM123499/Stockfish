@@ -521,7 +521,7 @@ bool Position::legal(Move m) const {
   // If pinned, it has to move along the king ray.
   if (type_of(m) == EN_PASSANT)
       return   !(st->previous->blockersForKing[sideToMove] & from)
-            || aligned(from, to, square<KING>(us));
+            || aligned(square<KING>(us), from, to);
 
   // Castling moves generation does not check if the castling path is clear of
   // enemy attacks, it is delayed at a later time: now!
@@ -549,7 +549,7 @@ bool Position::legal(Move m) const {
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
   return !(blockers_for_king(us) & from)
-      || aligned(from, to, square<KING>(us));
+      || aligned(square<KING>(us), from, to);
 }
 
 
@@ -643,7 +643,7 @@ bool Position::gives_check(Move m) const {
 
   // Is there a discovered check?
   if (   (blockers_for_king(~sideToMove) & from)
-      && !aligned(from, to, square<KING>(~sideToMove)))
+      && !aligned(square<KING>(~sideToMove), from, to))
       return true;
 
   switch (type_of(m))
