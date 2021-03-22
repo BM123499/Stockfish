@@ -56,6 +56,9 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int T2 = 25255;
+TUNE(SetRange(15000, 30000), T2);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -1092,7 +1095,7 @@ moves_loop: // When in check, search starts from here
                   && ss->staticEval + 174 + 157 * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
-                    + (*contHist[3])[movedPiece][to_sq(move)] < 25255)
+                    + (*contHist[3])[movedPiece][to_sq(move)] < T2)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
