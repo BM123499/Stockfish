@@ -1082,7 +1082,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
-
+  
   while (true)
   {
       stm = ~stm;
@@ -1094,7 +1094,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // there are pinners on their original square.
-      if ((bb = pinners(~stm) & occupied)){
+      if (blockers_for_king(stm) & attackers && (bb = pinners(~stm) & occupied)){
           const Square ksq = square<KING>(stm);
           while (bb)
               stmAttackers &= ~between_bb(ksq, pop_lsb(bb));
