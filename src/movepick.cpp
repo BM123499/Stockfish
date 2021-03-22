@@ -92,6 +92,12 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
                              && pos.see_ge(ttm, threshold));
 }
 
+int Tw[4] = {128, 64, 64, 64};
+int Tc = 3000;
+
+TUNE(SetRange( -32,  192), Tw);
+TUNE(SetRange(1000, 5000), Tc);
+
 /// MovePicker::score() assigns a numerical value to each move in a list, used
 /// for sorting. Captures are ordered by Most Valuable Victim (MVV), preferring
 /// captures with a good history. Quiets moves are ordered using the histories.
@@ -106,11 +112,11 @@ void MovePicker::score() {
                    + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if constexpr (Type == QUIETS)
-          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
-                   +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
+          m.value =          (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   + Tw[0] * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)] / 64
+                   + Tw[1] * (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)] / 64
+                   + Tw[2] * (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)] / 64
+                   + Tw[3] * (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)] / 64
                    + (ply < MAX_LPH ? std::min(4, depth / 3) * (*lowPlyHistory)[ply][from_to(m)] : 0);
 
       else // Type == EVASIONS
@@ -202,7 +208,7 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
+          partial_insertion_sort(cur, endMoves, -Tc * depth);
       }
 
       ++stage;
