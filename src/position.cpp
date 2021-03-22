@@ -1082,7 +1082,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
-  
+
   while (true)
   {
       stm = ~stm;
