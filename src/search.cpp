@@ -1154,6 +1154,13 @@ moves_loop: // When in check, search starts from here
           }
       }
 
+      // Passed pawn extension
+      else if (   move == ss->killers[0]
+               && type_of(pos.moved_piece(move)) == PAWN
+               && relative_rank(us, to_sq(move)) > RANK_6
+               && pos.pawn_passed(us, to_sq(move)))
+          extension = 1;
+
       // Check extension (~2 Elo)
       else if (    givesCheck
                && (pos.is_discovered_check_on_king(~us, move) || pos.see_ge(move)))
