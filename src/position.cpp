@@ -576,7 +576,7 @@ bool Position::pseudo_legal(const Move m) const {
 
   // If the 'from' square is not occupied by a piece belonging to the side to
   // move, the move is obviously not legal.
-  if (pc == NO_PIECE || color_of(pc) != us)
+  if (!(pieces(us) & from))
       return false;
 
   // The destination square cannot be occupied by a friendly piece
