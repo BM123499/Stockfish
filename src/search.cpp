@@ -1156,8 +1156,7 @@ moves_loop: // When in check, search starts from here
 
       // Passed pawn extension
       else if (   move == ss->killers[0]
-               && type_of(pos.moved_piece(move)) == PAWN
-               && relative_rank(us, to_sq(move)) > RANK_6
+               && type_of(move) == PROMOTION
                && pos.pawn_passed(us, to_sq(move)))
           extension = 1;
 
