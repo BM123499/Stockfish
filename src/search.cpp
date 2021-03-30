@@ -1464,6 +1464,12 @@ moves_loop: // When in check, search starts from here
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= 0);
 
+    // Mate distance pruning
+    alpha = std::max(mated_in(ss->ply), alpha);
+    beta = std::min(mate_in(ss->ply+1), beta);
+    if (alpha >= beta)
+        return alpha;
+
     Move pv[MAX_PLY+1];
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
