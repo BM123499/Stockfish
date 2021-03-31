@@ -279,8 +279,8 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
       st->previous = new StateInfo();
       remove_piece(st->epSquare - pawn_push(sideToMove));
       st->previous->checkersBB = attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
-      st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
-      st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
+      st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE));
+      st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
       put_piece(make_piece(~sideToMove, PAWN), st->epSquare - pawn_push(sideToMove));
   }
   else
@@ -329,8 +329,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE));
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
 
   Square ksq = square<KING>(~sideToMove);
 
@@ -464,10 +464,9 @@ string Position::fen() const {
 /// a pinned or a discovered check piece, according if its color is the opposite
 /// or the same of the color of the slider.
 
-Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const {
+Bitboard Position::slider_blockers(Bitboard sliders, Square s) const {
 
   Bitboard blockers = 0;
-  pinners = 0;
 
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = (  (attacks_bb<  ROOK>(s) & pieces(QUEEN, ROOK))
@@ -480,11 +479,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
     Bitboard b = between_bb(s, sniperSq) & occupancy;
 
     if (b && !more_than_one(b))
-    {
         blockers |= b;
-        if (b & pieces(color_of(piece_on(s))))
-            pinners |= sniperSq;
-    }
   }
   return blockers;
 }
@@ -1089,15 +1084,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       attackers &= occupied;
 
       // If stm has no more attackers then give up: stm loses
-      if (!(stmAttackers = attackers & pieces(stm)))
-          break;
-
-      // Don't allow pinned pieces to attack (except the king) as long as
-      // there are pinners on their original square.
-      if (pinners(~stm) & occupied)
-          stmAttackers &= ~blockers_for_king(stm);
-
-      if (!stmAttackers)
+      if (!(stmAttackers = attackers & pieces(stm) & ~blockers_for_king(stm)))
           break;
 
       res ^= 1;
