@@ -287,6 +287,8 @@ void MainThread::search() {
 }
 
 
+int InitialDelta = 17, tC = 160, tW = 32;
+TUNE(InitialDelta, tC, tW);
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
 /// consumed, the user stops the search, or the maximum search depth is reached.
@@ -406,7 +408,7 @@ void Thread::search() {
           if (rootDepth >= 4)
           {
               Value prev = rootMoves[pvIdx].previousScore;
-              delta = Value(17);
+              delta = Value(InitialDelta);
               alpha = std::max(prev - delta,-VALUE_INFINITE);
               beta  = std::min(prev + delta, VALUE_INFINITE);
 
@@ -467,7 +469,7 @@ void Thread::search() {
               else
                   break;
 
-              delta += delta / 4 + 5;
+              delta += (tW * delta / 4 + tC) / 32;
 
               assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
           }
