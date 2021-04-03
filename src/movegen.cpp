@@ -57,12 +57,10 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    const Square ksq = pos.square<KING>(Them);
-    Bitboard emptySquares;
-
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
 
+    Bitboard emptySquares;
     Bitboard enemies = (Type == EVASIONS ? pos.checkers():
                         Type == CAPTURES ? target : pos.pieces(Them));
 
@@ -82,8 +80,8 @@ namespace {
 
         if (Type == QUIET_CHECKS)
         {
-            b1 &= pawn_attacks_bb(Them, ksq);
-            b2 &= pawn_attacks_bb(Them, ksq);
+            b1 &= pos.check_squares(PAWN);
+            b2 &= pos.check_squares(PAWN);
 
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
@@ -92,7 +90,7 @@ namespace {
             Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
             if (dcCandidateQuiets)
             {
-                Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
+                Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(pos.square<KING>(Them));
                 Bitboard dc2 = shift<Up>(dc1 & TRank3BB) & emptySquares;
 
                 b1 |= dc1;
@@ -116,6 +114,8 @@ namespace {
     // Promotions and underpromotions
     if (pawnsOn7)
     {
+        const Square ksq = pos.square<KING>(Them);
+
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
 
