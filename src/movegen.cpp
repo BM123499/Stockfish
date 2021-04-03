@@ -20,6 +20,7 @@
 
 #include "movegen.h"
 #include "position.h"
+#include "misc.h"
 
 namespace Stockfish {
 
@@ -58,18 +59,17 @@ namespace {
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     const Square ksq = pos.square<KING>(Them);
-    Bitboard emptySquares;
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
 
+    Bitboard emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());;
     Bitboard enemies = (Type == EVASIONS ? pos.checkers():
                         Type == CAPTURES ? target : pos.pieces(Them));
 
     // Single and double pawn pushes, no promotions
-    if (Type != CAPTURES)
+    if (Type != CAPTURES && pawnsNotOn7)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
 
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRank3BB) & emptySquares;
@@ -114,7 +114,7 @@ namespace {
     }
 
     // Promotions and underpromotions
-    if (pawnsOn7)
+    if (Type != QUIET_CHECKS && pawnsOn7)
     {
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
@@ -137,7 +137,7 @@ namespace {
     }
 
     // Standard and en passant captures
-    if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+    if (Type != QUIETS && Type != QUIET_CHECKS && pawnsNotOn7)
     {
         Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
         Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
