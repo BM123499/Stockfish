@@ -20,7 +20,6 @@
 
 #include "movegen.h"
 #include "position.h"
-#include "misc.h"
 
 namespace Stockfish {
 
