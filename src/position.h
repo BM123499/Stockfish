@@ -411,6 +411,7 @@ inline void Position::move_piece(Square from, Square to) {
 
 inline void Position::do_move(Move m, StateInfo& newSt) {
   do_move(m, newSt, gives_check(m));
+  ++gamePly;
 }
 
 inline StateInfo* Position::state() const {
