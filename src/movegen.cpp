@@ -175,20 +175,17 @@ namespace {
   }
 
 
-  template<PieceType Pt, bool Checks>
-  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard piecesToMove, Bitboard target) {
+  template<Color Us, PieceType Pt>
+  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
     static_assert(Pt != KING && Pt != PAWN, "Unsupported piece type in generate_moves()");
 
-    Bitboard bb = piecesToMove & pos.pieces(Pt);
+    Bitboard bb = pos.pieces(Us, Pt);
 
     while (bb)
     {
         Square from = pop_lsb(bb);
-
         Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
-        if constexpr (Checks)
-            b &= pos.check_squares(Pt);
 
         while (b)
             *moveList++ = make_move(from, pop_lsb(b));
@@ -202,16 +199,12 @@ namespace {
   ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
 
     static_assert(Type != LEGAL, "Unsupported type in generate_all()");
+    Square ksq = pos.square<KING>(Us);
 
-    constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantiations
-    Bitboard target, piecesToMove = pos.pieces(Us);
-
-    if (Checks)
-        piecesToMove &= ~pos.blockers_for_king(~Us);
-    
     if (Type == EVASIONS && more_than_one(pos.checkers()))
         goto kingMoves; // Double check, only a king move can save the day
 
+    Bitboard target;
     switch (Type)
     {
         case CAPTURES:
@@ -222,7 +215,7 @@ namespace {
             target = ~pos.pieces();
             break;
         case EVASIONS:
-            target = between_bb(pos.square<KING>(Us), lsb(pos.checkers()));
+            target = between_bb(ksq, lsb(pos.checkers()));
             break;
         case NON_EVASIONS:
             target = ~pos.pieces(Us);
@@ -230,24 +223,24 @@ namespace {
     }
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
-    moveList = generate_moves<KNIGHT, Checks>(pos, moveList, piecesToMove, target);
-    moveList = generate_moves<BISHOP, Checks>(pos, moveList, piecesToMove, target);
-    moveList = generate_moves<  ROOK, Checks>(pos, moveList, piecesToMove, target);
-    moveList = generate_moves< QUEEN, Checks>(pos, moveList, piecesToMove, target);
+
+    if (Type == QUIET_CHECKS)
+        return moveList;
+
+    moveList = generate_moves<Us, KNIGHT>(pos, moveList, target);
+    moveList = generate_moves<Us, BISHOP>(pos, moveList, target);
+    moveList = generate_moves<Us,   ROOK>(pos, moveList, target);
+    moveList = generate_moves<Us,  QUEEN>(pos, moveList, target);
 
 kingMoves:
-    if (!Checks)
-    {
-        Square ksq = pos.square<KING>(Us);
-        Bitboard b = attacks_bb<KING>(ksq) & (Type == EVASIONS ? ~pos.pieces(Us) : target);
-        while (b)
-            *moveList++ = make_move(ksq, pop_lsb(b));
+    Bitboard b = attacks_bb<KING>(ksq) & (Type == EVASIONS ? ~pos.pieces(Us) : target);
+    while (b)
+        *moveList++ = make_move(ksq, pop_lsb(b));
 
-        if ((Type != CAPTURES && Type != EVASIONS) && pos.can_castle(Us & ANY_CASTLING))
-            for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
-                if (!pos.castling_impeded(cr) && pos.can_castle(cr))
-                    *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
-    }
+    if ((Type == QUIETS || Type == NON_EVASIONS) && pos.can_castle(Us & ANY_CASTLING))
+        for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
+            if (!pos.castling_impeded(cr) && pos.can_castle(cr))
+                *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
 
     return moveList;
   }
@@ -259,13 +252,14 @@ kingMoves:
 /// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions (except checking knight)
 /// <EVASIONS>     Generates all pseudo-legal check evasions when the side to move is in check
 /// <NON_EVASIONS> Generates all pseudo-legal captures and non-captures
+/// <QUIET_CHECKS> Generates all pseudo-legal non-captures giving check, except castling
 ///
 /// Returns a pointer to the end of the move list.
 
 template<GenType Type>
 ExtMove* generate(const Position& pos, ExtMove* moveList) {
 
-  static_assert(Type == CAPTURES || Type == QUIETS || Type == NON_EVASIONS || Type == EVASIONS, "Unsupported type in generate()");
+  static_assert(Type != LEGAL, "Unsupported type in generate()");
   assert((Type == EVASIONS) == (bool)pos.checkers());
 
   Color us = pos.side_to_move();
@@ -278,36 +272,8 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 template ExtMove* generate<CAPTURES>(const Position&, ExtMove*);
 template ExtMove* generate<QUIETS>(const Position&, ExtMove*);
 template ExtMove* generate<EVASIONS>(const Position&, ExtMove*);
+template ExtMove* generate<QUIET_CHECKS>(const Position&, ExtMove*);
 template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
-
-
-/// generate<QUIET_CHECKS> generates all pseudo-legal non-captures giving check,
-/// except castling. Returns a pointer to the end of the move list.
-template<>
-ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
-
-  assert(!pos.checkers());
-
-  Color us = pos.side_to_move();
-  Bitboard dc = pos.blockers_for_king(~us) & pos.pieces(us) & ~pos.pieces(PAWN);
-
-  while (dc)
-  {
-     Square from = pop_lsb(dc);
-     PieceType pt = type_of(pos.piece_on(from));
-
-     Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
-
-     if (pt == KING)
-         b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
-
-     while (b)
-         *moveList++ = make_move(from, pop_lsb(b));
-  }
-
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, moveList)
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, moveList);
-}
 
 
 /// generate<LEGAL> generates all the legal moves in the given position

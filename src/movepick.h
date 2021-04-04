@@ -156,6 +156,7 @@ private:
   Depth depth;
   int ply;
   ExtMove moves[MAX_MOVES];
+  Bitboard qcb;
 };
 
 } // namespace Stockfish

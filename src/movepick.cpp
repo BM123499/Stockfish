@@ -255,11 +255,33 @@ top:
       cur = moves;
       endMoves = generate<QUIET_CHECKS>(pos, cur);
 
+      qcb = pos.pieces(pos.side_to_move()) & ~pos.pieces(PAWN);
+
       ++stage;
       [[fallthrough]];
 
   case QCHECK:
-      return select<Next>([](){ return true; });
+      while (cur == endMoves){
+          if (!qcb)
+              return MOVE_NONE;
+          
+          Square from = pop_lsb(qcb);
+          PieceType pt = type_of(pos.piece_on(from));
+
+          Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
+
+          if (!(pos.blockers_for_king(~pos.side_to_move()) & from))
+              b &= pos.check_squares(pt);
+
+          if (pt == KING)
+              b &= ~attacks_bb<QUEEN>(pos.square<KING>(~pos.side_to_move()));
+            
+          while (b)
+              *endMoves++ = make_move(from, pop_lsb(b));
+      }
+
+      assert(cur < endMoves);
+      return *(++cur - 1);
   }
 
   assert(false);
