@@ -82,8 +82,8 @@ namespace {
 
         if (Type == QUIET_CHECKS)
         {
-            b1 &= pawn_attacks_bb(Them, ksq);
-            b2 &= pawn_attacks_bb(Them, ksq);
+            b1 &= pos.check_squares(PAWN);
+            b2 &= pos.check_squares(PAWN);
 
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
