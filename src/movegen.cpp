@@ -189,7 +189,7 @@ namespace {
 
         if (!Checks || (Pt != QUEEN && pos.blockers_for_king(~Us) & from))
             b = attacks_bb<Pt>(from, pos.pieces()) & target;
-        else if ((Pt == KNIGHT || Pt == BISHOP) && opposite_colors(from, pos.square<KING>(~Us)))
+        else if (Pt == BISHOP && opposite_colors(from, pos.square<KING>(~Us)))
             continue;
         else
             b = attacks_bb<Pt>(from, pos.pieces()) & target & pos.check_squares(Pt);
