@@ -82,9 +82,6 @@ namespace {
 
         if (Type == QUIET_CHECKS)
         {
-            b1 &= pawn_attacks_bb(Them, ksq);
-            b2 &= pawn_attacks_bb(Them, ksq);
-
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovered check
@@ -92,11 +89,13 @@ namespace {
             Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
             if (dcCandidateQuiets)
             {
-                Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
-                Bitboard dc2 = shift<Up>(dc1 & TRank3BB) & emptySquares;
-
-                b1 |= dc1;
-                b2 |= dc2;
+                b1 &= pawn_attacks_bb(Them, ksq) | shift<   Up>(dcCandidateQuiets &= ~file_bb(ksq));
+                b2 &= pawn_attacks_bb(Them, ksq) | shift<Up+Up>(dcCandidateQuiets);
+            }
+            else
+            {
+                b1 &= pawn_attacks_bb(Them, ksq);
+                b2 &= pawn_attacks_bb(Them, ksq);
             }
         }
 
