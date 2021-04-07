@@ -1081,6 +1081,8 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color stm = color_of(piece_on(from));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
+  Bitboard blockers[COLOR_NB] = { slider_blockers(pieces(WHITE), to, bb),
+                                  slider_blockers(pieces(BLACK), to, bb)};
   int res = 1;
 
   while (true)
@@ -1099,6 +1101,9 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       if (!stmAttackers)
           break;
+
+      if (stmAttackers &  ~blockers[stm])
+          stmAttackers &= ~blockers[stm];
 
       res ^= 1;
 
