@@ -75,6 +75,12 @@ public:
   ContinuationHistory continuationHistory[2][2];
   Score contempt;
   int failedHighCnt;
+
+  struct perftPos {
+    std::string fen;
+    Depth d;
+    int ID;
+  } *rootPerft;
 };
 
 

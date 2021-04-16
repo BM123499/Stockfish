@@ -159,34 +159,28 @@ namespace {
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
 
+  std::atomic<uint64_t> perftSum[MAX_MOVES];
   // perft() is our utility to verify move generation. All the leaf nodes up
-  // to the given depth are generated and counted, and the sum is returned.
-  template<bool Root>
+  // to the given depth are generated and counted.
   uint64_t perft(Position& pos, Depth depth) {
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
-
-    uint64_t cnt, nodes = 0;
+    uint64_t cnt = 0;
     const bool leaf = (depth == 2);
+    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
 
     for (const auto& m : MoveList<LEGAL>(pos))
     {
-        if (Root && depth <= 1)
-            cnt = 1, nodes++;
-        else
-        {
-            pos.do_move(m, st);
-            cnt = leaf ? MoveList<LEGAL>(pos).size() : perft<false>(pos, depth - 1);
-            nodes += cnt;
-            pos.undo_move(m);
-        }
-        if (Root)
-            sync_cout << UCI::move(m, pos.is_chess960()) << ": " << cnt << sync_endl;
-    }
-    return nodes;
-  }
+        pos.do_move(m, st);
 
+        cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - 1);
+
+        pos.undo_move(m);
+    }
+
+    return cnt;
+  }
+  
 } // namespace
 
 
@@ -219,7 +213,62 @@ void MainThread::search() {
 
   if (Limits.perft)
   {
-      nodes = perft<true>(rootPos, Limits.perft);
+      // Step 0: Reseting and store global variables
+      StateInfo st;
+      std::string posNow = rootPos.fen();
+      std::vector<perftPos> perftMoves, newPerftMoves;
+      for (int i = 0; i < MAX_MOVES; i++)
+          perftSum[i].store(0, std::memory_order_release);
+
+      // Step 1: Create new root positions that will be distributed between threads
+      for (const auto& m : MoveList<LEGAL>(rootPos)) {
+          rootPos.do_move(m, st);
+          perftMoves.push_back({rootPos.fen(), Depth(Limits.perft - 1), (int)perftMoves.size()});
+          rootPos.undo_move(m);
+      }
+      
+      // Step 2: Extend root positions if it's not enough to distribute evenly between threads
+      while (4 * Threads.size() > perftMoves.size() && perftMoves.size() && perftMoves[0].d > 3){
+          newPerftMoves.clear();
+
+          for (const auto& pm : perftMoves){
+              rootPos.set(pm.fen, rootPos.is_chess960(), rootPos.state(), this);
+
+              for (const auto& m : MoveList<LEGAL>(rootPos)){
+                  rootPos.do_move(m, st);
+                  newPerftMoves.push_back({rootPos.fen(), pm.d - 1, pm.ID});
+                  rootPos.undo_move(m);
+              }
+          }
+
+          perftMoves = newPerftMoves;
+      }
+
+      // Step 3: Share root positions evenly between the threads
+      unsigned cntT = Threads.size();
+      auto pm = perftMoves.begin();
+      for (Thread* th : Threads){
+          th->rootPerft = new perftPos[perftMoves.size() / Threads.size() + 2];
+
+          unsigned Total = (perftMoves.end() - pm) / (cntT--);
+          for (unsigned i = 0; i < Total; i++)
+              th->rootPerft[i] = *pm++;
+          th->rootPerft[Total] = {"", 0, -1};
+      }
+      
+      // Step 4: Initialize Perft in all threads and wait all to be finished
+      Threads.start_searching();
+      Thread::search();
+      Threads.wait_for_search_finished();
+      
+      // Step 5: Gather information between threads and print results
+      int i = 0; nodes = 0;
+      rootPos.set(posNow, rootPos.is_chess960(), rootPos.state(), this);
+      for (const auto& m : MoveList<LEGAL>(rootPos)){
+          sync_cout << UCI::move(m, rootPos.is_chess960()) << ": " << perftSum[i].load(std::memory_order_acquire) << sync_endl;
+          nodes += perftSum[i++].load(std::memory_order_acquire);
+      }
+
       sync_cout << "\nNodes searched: " << nodes << "\n" << sync_endl;
       return;
   }
@@ -292,6 +341,20 @@ void MainThread::search() {
 /// consumed, the user stops the search, or the maximum search depth is reached.
 
 void Thread::search() {
+
+  if (Limits.perft){
+
+      for (auto posPerft = rootPerft; posPerft->ID != -1; posPerft++) {
+          rootPos.set(posPerft->fen, rootPos.is_chess960(), rootPos.state(), this);
+
+          uint64_t perftNodes = posPerft->d  > 1 ? perft(rootPos, posPerft->d)
+                              : posPerft->d == 1 ? MoveList<LEGAL>(rootPos).size() : 1;
+
+          perftSum[posPerft->ID].fetch_add(perftNodes, std::memory_order_acq_rel);
+      }
+
+      return;
+  }
 
   // To allow access to (ss-7) up to (ss+2), the stack must be oversized.
   // The former is needed to allow update_continuation_histories(ss-1, ...),
