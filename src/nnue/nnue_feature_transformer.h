@@ -22,6 +22,7 @@
 #define NNUE_FEATURE_TRANSFORMER_H_INCLUDED
 
 #include "nnue_common.h"
+#include "features/half_kp.h"
 #include "nnue_architecture.h"
 #include "features/index_list.h"
 
@@ -276,10 +277,11 @@ namespace Stockfish::Eval::NNUE {
         static_assert(std::is_same_v<Features::FeatureSet<Features::HalfKP<Features::Side::kFriend>>,
                                      RawFeatures>);
         Features::IndexList removed[2], added[2];
-        Features::HalfKP<Features::Side::kFriend>::AppendChangedIndices(pos,
+        const Square ksq = Features::orient(c, pos.square<KING>(c));
+        Features::HalfKP<Features::Side::kFriend>::AppendChangedIndices(ksq,
             next->dirtyPiece, c, &removed[0], &added[0]);
         for (StateInfo *st2 = pos.state(); st2 != next; st2 = st2->previous)
-          Features::HalfKP<Features::Side::kFriend>::AppendChangedIndices(pos,
+          Features::HalfKP<Features::Side::kFriend>::AppendChangedIndices(ksq,
               st2->dirtyPiece, c, &removed[1], &added[1]);
 
         // Mark the accumulators as computed.

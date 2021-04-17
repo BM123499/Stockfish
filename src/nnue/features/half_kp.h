@@ -50,10 +50,14 @@ namespace Stockfish::Eval::NNUE::Features {
                                     IndexList* active);
 
     // Get a list of indices for recently changed features
-    static void AppendChangedIndices(const Position& pos, const DirtyPiece& dp, Color perspective,
+    static void AppendChangedIndices(Square ksq, const DirtyPiece& dp, Color perspective,
                                      IndexList* removed, IndexList* added);
   };
 
+  // Orient a square according to perspective (rotates by 180 for black)
+  inline Square orient(Color perspective, Square s) {
+    return Square(int(s) ^ (bool(perspective) * 63));
+  }
 }  // namespace Stockfish::Eval::NNUE::Features
 
 #endif // #ifndef NNUE_FEATURES_HALF_KP_H_INCLUDED

@@ -23,11 +23,6 @@
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  // Orient a square according to perspective (rotates by 180 for black)
-  inline Square orient(Color perspective, Square s) {
-    return Square(int(s) ^ (bool(perspective) * 63));
-  }
-
   // Index of a feature for a given king position and another piece on some square
   inline IndexType make_index(Color perspective, Square s, Piece pc, Square ksq) {
     return IndexType(orient(perspective, s) + kpp_board_index[perspective][pc] + PS_END * ksq);
@@ -68,10 +63,9 @@ namespace Stockfish::Eval::NNUE::Features {
 
   template <Side AssociatedKing>
   void HalfKP<AssociatedKing>::AppendChangedIndices(
-      const Position& pos, const DirtyPiece& dp, Color perspective,
+      Square ksq, const DirtyPiece& dp, Color perspective,
       IndexList* removed, IndexList* added) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
       if (type_of(pc) == KING) continue;
