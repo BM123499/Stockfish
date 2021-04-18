@@ -146,7 +146,7 @@ namespace {
   void init_magics(PieceType pt, Bitboard table[], Magic magics[]) {
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    int seeds[RANK_NB] = { 8977, 44560, 54343, 38998,  5731, 95205, 104912, 17020 };
+    int seeds[RANK_NB] = {  728, 10316, 55013, 32803, 12281, 15100,  16645,   255 };
 
     Bitboard occupancy[4096], reference[4096], edges, b;
     int epoch[4096] = {}, cnt = 0, size = 0;
@@ -163,7 +163,7 @@ namespace {
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
         m.mask  = sliding_attack(pt, s, 0) & ~edges;
-        m.shift = 32 - popcount(m.mask);
+        m.shift = 64 - popcount(m.mask);
 
         // Set the offset for the attacks table of the square. We have individual
         // table sizes for each square with "Fancy Magic Bitboards".

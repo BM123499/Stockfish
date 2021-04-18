@@ -90,10 +90,11 @@ struct Magic {
 
   // Compute the attack's index using the 'magic bitboards' approach
   unsigned index(Bitboard occupied) const {
-
-    unsigned lo = unsigned(occupied) & unsigned(mask);
-    unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
-    return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> shift;
+    unsigned u = ((occupied & mask) >> 32) * (unsigned)magic;
+    unsigned v = (magic >> 32) * (unsigned)(occupied & mask);
+    u = u + v;
+    Bitboard x = unsigned(occupied & mask) * Bitboard(unsigned(magic));
+    return (x + (Bitboard(u) << 32)) >> shift;
   }
 };
 
