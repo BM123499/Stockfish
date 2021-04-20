@@ -291,7 +291,7 @@ namespace {
     Evaluation() = delete;
     explicit Evaluation(const Position& p) : pos(p) {}
     Evaluation& operator=(const Evaluation&) = delete;
-    Value value();
+    Value value(Material::Entry* m);
 
   private:
     template<Color Us> void initialize();
@@ -964,17 +964,11 @@ namespace {
   // of view of the side to move.
 
   template<Tracing T>
-  Value Evaluation<T>::value() {
+  Value Evaluation<T>::value(Material::Entry* m) {
 
     assert(!pos.checkers());
 
-    // Probe the material hash table
-    me = Material::probe(pos);
-
-    // If we have a specialized evaluation function for the current material
-    // configuration, call it and return.
-    if (me->specialized_eval_exists())
-        return me->evaluate(pos);
+    me = m;
 
     // Initialize score by reading the incrementally updated scores included in
     // the position object (material + piece square tables) and the material
@@ -1082,10 +1076,18 @@ make_v:
 
 Value Eval::evaluate(const Position& pos) {
 
+  // Probe the material hash table
+  Material::Entry* me = Material::probe(pos);
+
+  // If we have a specialized evaluation function for the current material
+  // configuration, call it and return.
+  if (me->specialized_eval_exists())
+      return me->evaluate(pos);
+
   Value v;
 
   if (!Eval::useNNUE)
-      v = Evaluation<NO_TRACE>(pos).value();
+      v = Evaluation<NO_TRACE>(pos).value(me);
   else
   {
       // Scale and shift NNUE for compatibility with search and classical evaluation
@@ -1116,7 +1118,7 @@ Value Eval::evaluate(const Position& pos) {
       bool lowPieceEndgame =   pos.non_pawn_material() == BishopValueMg
                             || (pos.non_pawn_material() < 2 * RookValueMg && pos.count<PAWN>() < 2);
 
-      v = classical || lowPieceEndgame ? Evaluation<NO_TRACE>(pos).value() 
+      v = classical || lowPieceEndgame ? Evaluation<NO_TRACE>(pos).value(me) 
                                        : adjusted_NNUE();
 
       // If the classical eval is small and imbalance large, use NNUE nevertheless.
@@ -1159,7 +1161,15 @@ std::string Eval::trace(const Position& pos) {
 
   pos.this_thread()->contempt = SCORE_ZERO; // Reset any dynamic contempt
 
-  v = Evaluation<TRACE>(pos).value();
+  // Probe the material hash table
+  Material::Entry* me = Material::probe(pos);
+
+  // If we have a specialized evaluation function for the current material
+  // configuration, call it and return.
+  if (me->specialized_eval_exists())
+      v = me->evaluate(pos);
+  else
+      v = Evaluation<TRACE>(pos).value(me);
 
   ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2)
      << "     Term    |    White    |    Black    |    Total   \n"
