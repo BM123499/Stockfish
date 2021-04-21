@@ -768,10 +768,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (type_of(m) == EN_PASSANT)
           board[capsq] = NO_PIECE;
 
-      // Update material hash key and prefetch access to materialTable
+      // Update material hash key
       k ^= Zobrist::psq[captured][capsq];
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
-      prefetch(thisThread->materialTable[st->materialKey]);
 
       // Reset rule 50 counter
       st->rule50 = 0;
