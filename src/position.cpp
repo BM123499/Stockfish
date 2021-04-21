@@ -548,8 +548,9 @@ bool Position::legal(Move m) const {
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
-  return !(blockers_for_king(us) & from)
-      || aligned(from, to, square<KING>(us));
+  return type_of(piece_on(from)) != PAWN
+     || !(blockers_for_king(us) & from)
+     || aligned(from, to, square<KING>(us));
 }
 
 
@@ -600,6 +601,9 @@ bool Position::pseudo_legal(const Move m) const {
           return false;
   }
   else if (!(attacks_bb(type_of(pc), from, pieces()) & to))
+      return false;
+
+  if (blockers_for_king(us) & from && !aligned(from, to, square<KING>(us)))
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves

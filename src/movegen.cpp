@@ -176,7 +176,7 @@ namespace {
 
 
   template<Color Us, PieceType Pt, bool Checks>
-  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
+  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard target, Square ksq) {
 
     static_assert(Pt != KING && Pt != PAWN, "Unsupported piece type in generate_moves()");
 
@@ -185,10 +185,17 @@ namespace {
     while (bb)
     {
         Square from = pop_lsb(bb);
+        const bool blocker = pos.blockers_for_king(Us) & from;
+
+        if (blocker && (Pt == KNIGHT || (Pt != QUEEN && !(attacks_bb<Pt>(from) & ksq))))
+            continue;
 
         Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
         if (Checks && (Pt == QUEEN || !(pos.blockers_for_king(~Us) & from)))
             b &= pos.check_squares(Pt);
+
+        if (Pt != KNIGHT && blocker)
+            b &= line_bb(ksq, from);
 
         while (b)
             *moveList++ = make_move(from, pop_lsb(b));
@@ -228,10 +235,10 @@ namespace {
     }
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
-    moveList = generate_moves<Us, KNIGHT, Checks>(pos, moveList, target);
-    moveList = generate_moves<Us, BISHOP, Checks>(pos, moveList, target);
-    moveList = generate_moves<Us,   ROOK, Checks>(pos, moveList, target);
-    moveList = generate_moves<Us,  QUEEN, Checks>(pos, moveList, target);
+    moveList = generate_moves<Us, KNIGHT, Checks>(pos, moveList, target, ksq);
+    moveList = generate_moves<Us, BISHOP, Checks>(pos, moveList, target, ksq);
+    moveList = generate_moves<Us,   ROOK, Checks>(pos, moveList, target, ksq);
+    moveList = generate_moves<Us,  QUEEN, Checks>(pos, moveList, target, ksq);
 
 kingMoves:
     if (!Checks || pos.blockers_for_king(~Us) & ksq)
