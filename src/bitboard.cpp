@@ -18,7 +18,6 @@
 
 #include <algorithm>
 #include <bitset>
-#include <array>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -34,93 +33,92 @@ Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
-Magic<  ROOK> RookMagics[SQUARE_NB];
-Magic<BISHOP> BishopMagics[SQUARE_NB];
-
 namespace {
-  using KnownMagicArray = std::array<KnownMagic, SQUARE_NB>;
-
-  // If using magic bitboards, it's possible to reduce the size of the
-  // attack table (~694 kB instead of 841 kB) by using specific offsets
-  // in the table for each piece, to allow overlaps wherever possible.
-  // We use magics and offsets originally found by Volker Annuss:
-  // www.talkchess.com/forum3/viewtopic.php?p=727500#p727500
-  constexpr KnownMagicArray KnownRookMagics = {
-    KnownMagic { 0x00280077ffebfffeu,  26304 }, KnownMagic { 0x2004010201097fffu,  35520 },
-    KnownMagic { 0x0010020010053fffu,  38592 }, KnownMagic { 0x0040040008004002u,   8026 },
-    KnownMagic { 0x7fd00441ffffd003u,  22196 }, KnownMagic { 0x4020008887dffffeu,  80870 },
-    KnownMagic { 0x004000888847ffffu,  76747 }, KnownMagic { 0x006800fbff75fffdu,  30400 },
-    KnownMagic { 0x000028010113ffffu,  11115 }, KnownMagic { 0x0020040201fcffffu,  18205 },
-    KnownMagic { 0x007fe80042ffffe8u,  53577 }, KnownMagic { 0x00001800217fffe8u,  62724 },
-    KnownMagic { 0x00001800073fffe8u,  34282 }, KnownMagic { 0x00001800e05fffe8u,  29196 },
-    KnownMagic { 0x00001800602fffe8u,  23806 }, KnownMagic { 0x000030002fffffa0u,  49481 },
-    KnownMagic { 0x00300018010bffffu,   2410 }, KnownMagic { 0x0003000c0085fffbu,  36498 },
-    KnownMagic { 0x0004000802010008u,  24478 }, KnownMagic { 0x0004002020020004u,  10074 },
-    KnownMagic { 0x0001002002002001u,  79315 }, KnownMagic { 0x0001001000801040u,  51779 },
-    KnownMagic { 0x0000004040008001u,  13586 }, KnownMagic { 0x0000006800cdfff4u,  19323 },
-    KnownMagic { 0x0040200010080010u,  70612 }, KnownMagic { 0x0000080010040010u,  83652 },
-    KnownMagic { 0x0004010008020008u,  63110 }, KnownMagic { 0x0000040020200200u,  34496 },
-    KnownMagic { 0x0002008010100100u,  84966 }, KnownMagic { 0x0000008020010020u,  54341 },
-    KnownMagic { 0x0000008020200040u,  60421 }, KnownMagic { 0x0000820020004020u,  86402 },
-    KnownMagic { 0x00fffd1800300030u,  50245 }, KnownMagic { 0x007fff7fbfd40020u,  76622 },
-    KnownMagic { 0x003fffbd00180018u,  84676 }, KnownMagic { 0x001fffde80180018u,  78757 },
-    KnownMagic { 0x000fffe0bfe80018u,  37346 }, KnownMagic { 0x0001000080202001u,    370 },
-    KnownMagic { 0x0003fffbff980180u,  42182 }, KnownMagic { 0x0001fffdff9000e0u,  45385 },
-    KnownMagic { 0x00fffefeebffd800u,  61659 }, KnownMagic { 0x007ffff7ffc01400u,  12790 },
-    KnownMagic { 0x003fffbfe4ffe800u,  16762 }, KnownMagic { 0x001ffff01fc03000u,      0 },
-    KnownMagic { 0x000fffe7f8bfe800u,  38380 }, KnownMagic { 0x0007ffdfdf3ff808u,  11098 },
-    KnownMagic { 0x0003fff85fffa804u,  21803 }, KnownMagic { 0x0001fffd75ffa802u,  39189 },
-    KnownMagic { 0x00ffffd7ffebffd8u,  58628 }, KnownMagic { 0x007fff75ff7fbfd8u,  44116 },
-    KnownMagic { 0x003fff863fbf7fd8u,  78357 }, KnownMagic { 0x001fffbfdfd7ffd8u,  44481 },
-    KnownMagic { 0x000ffff810280028u,  64134 }, KnownMagic { 0x0007ffd7f7feffd8u,  41759 },
-    KnownMagic { 0x0003fffc0c480048u,   1394 }, KnownMagic { 0x0001ffffafd7ffd8u,  40910 },
-    KnownMagic { 0x00ffffe4ffdfa3bau,  66516 }, KnownMagic { 0x007fffef7ff3d3dau,   3897 },
-    KnownMagic { 0x003fffbfdfeff7fau,   3930 }, KnownMagic { 0x001fffeff7fbfc22u,  72934 },
-    KnownMagic { 0x0000020408001001u,  72662 }, KnownMagic { 0x0007fffeffff77fdu,  56325 },
-    KnownMagic { 0x0003ffffbf7dfeecu,  66501 }, KnownMagic { 0x0001ffff9dffa333u,  14826 }
-  };
-
-  constexpr KnownMagicArray KnownBishopMagics = {
-    KnownMagic { 0x007fbfbfbfbfbfffu,   5378 }, KnownMagic { 0x0000a060401007fcu,   4093 },
-    KnownMagic { 0x0001004008020000u,   4314 }, KnownMagic { 0x0000806004000000u,   6587 },
-    KnownMagic { 0x0000100400000000u,   6491 }, KnownMagic { 0x000021c100b20000u,   6330 },
-    KnownMagic { 0x0000040041008000u,   5609 }, KnownMagic { 0x00000fb0203fff80u,  22236 },
-    KnownMagic { 0x0000040100401004u,   6106 }, KnownMagic { 0x0000020080200802u,   5625 },
-    KnownMagic { 0x0000004010202000u,  16785 }, KnownMagic { 0x0000008060040000u,  16817 },
-    KnownMagic { 0x0000004402000000u,   6842 }, KnownMagic { 0x0000000801008000u,   7003 },
-    KnownMagic { 0x000007efe0bfff80u,   4197 }, KnownMagic { 0x0000000820820020u,   7356 },
-    KnownMagic { 0x0000400080808080u,   4602 }, KnownMagic { 0x00021f0100400808u,   4538 },
-    KnownMagic { 0x00018000c06f3fffu,  29531 }, KnownMagic { 0x0000258200801000u,  45393 },
-    KnownMagic { 0x0000240080840000u,  12420 }, KnownMagic { 0x000018000c03fff8u,  15763 },
-    KnownMagic { 0x00000a5840208020u,   5050 }, KnownMagic { 0x0000020008208020u,   4346 },
-    KnownMagic { 0x0000804000810100u,   6074 }, KnownMagic { 0x0001011900802008u,   7866 },
-    KnownMagic { 0x0000804000810100u,  32139 }, KnownMagic { 0x000100403c0403ffu,  57673 },
-    KnownMagic { 0x00078402a8802000u,  55365 }, KnownMagic { 0x0000101000804400u,  15818 },
-    KnownMagic { 0x0000080800104100u,   5562 }, KnownMagic { 0x00004004c0082008u,   6390 },
-    KnownMagic { 0x0001010120008020u,   7930 }, KnownMagic { 0x000080809a004010u,  13329 },
-    KnownMagic { 0x0007fefe08810010u,   7170 }, KnownMagic { 0x0003ff0f833fc080u,  27267 },
-    KnownMagic { 0x007fe08019003042u,  53787 }, KnownMagic { 0x003fffefea003000u,   5097 },
-    KnownMagic { 0x0000101010002080u,   6643 }, KnownMagic { 0x0000802005080804u,   6138 },
-    KnownMagic { 0x0000808080a80040u,   7418 }, KnownMagic { 0x0000104100200040u,   7898 },
-    KnownMagic { 0x0003ffdf7f833fc0u,  42012 }, KnownMagic { 0x0000008840450020u,  57350 },
-    KnownMagic { 0x00007ffc80180030u,  22813 }, KnownMagic { 0x007fffdd80140028u,  56693 },
-    KnownMagic { 0x00020080200a0004u,   5818 }, KnownMagic { 0x0000101010100020u,   7098 },
-    KnownMagic { 0x0007ffdfc1805000u,   4451 }, KnownMagic { 0x0003ffefe0c02200u,   4709 },
-    KnownMagic { 0x0000000820806000u,   4794 }, KnownMagic { 0x0000000008403000u,  13364 },
-    KnownMagic { 0x0000000100202000u,   4570 }, KnownMagic { 0x0000004040802000u,   4282 },
-    KnownMagic { 0x0004010040100400u,  14964 }, KnownMagic { 0x00006020601803f4u,   4026 },
-    KnownMagic { 0x0003ffdfdfc28048u,   4826 }, KnownMagic { 0x0000000820820020u,   7354 },
-    KnownMagic { 0x0000000008208060u,   4848 }, KnownMagic { 0x0000000000808020u,  15946 },
-    KnownMagic { 0x0000000001002020u,  14932 }, KnownMagic { 0x0000000401002008u,  16588 },
-    KnownMagic { 0x0000004040404040u,   6905 }, KnownMagic { 0x007fff9fdf7ff813u,  16076 }
-  };
-
   // If using PEXT indexing, do not use reduced table size.
-  Bitboard SlideAttackTable[HasPext ? 0x19000 + 0x1480 : 88772] {};
+  Bitboard SlideAttackTable[HasPext ? 0x19000 + 0x1480 : 88772] = {};
 
   template<PieceType Pt>
-  void init_magics(Bitboard table[], Magic<Pt> magics[]);
+  void init_magics(Magic<Pt> magics[]);
 }
+
+// If using magic bitboards, it's possible to reduce the size of the
+// attack table (~694 kB instead of 841 kB) by using specific offsets
+// in the table for each piece, to allow overlaps wherever possible.
+// We use magics and offsets originally found by Volker Annuss:
+// www.talkchess.com/forum3/viewtopic.php?p=727500#p727500
+#define sat SlideAttackTable
+
+Magic< ROOK > RookMagics[SQUARE_NB] = {
+    { 0x00280077ffebfffeULL, sat + 26304 }, { 0x2004010201097fffULL, sat + 35520 },
+    { 0x0010020010053fffULL, sat + 38592 }, { 0x0040040008004002ULL, sat +  8026 },
+    { 0x7fd00441ffffd003ULL, sat + 22196 }, { 0x4020008887dffffeULL, sat + 80870 },
+    { 0x004000888847ffffULL, sat + 76747 }, { 0x006800fbff75fffdULL, sat + 30400 },
+    { 0x000028010113ffffULL, sat + 11115 }, { 0x0020040201fcffffULL, sat + 18205 },
+    { 0x007fe80042ffffe8ULL, sat + 53577 }, { 0x00001800217fffe8ULL, sat + 62724 },
+    { 0x00001800073fffe8ULL, sat + 34282 }, { 0x00001800e05fffe8ULL, sat + 29196 },
+    { 0x00001800602fffe8ULL, sat + 23806 }, { 0x000030002fffffa0ULL, sat + 49481 },
+    { 0x00300018010bffffULL, sat +  2410 }, { 0x0003000c0085fffbULL, sat + 36498 },
+    { 0x0004000802010008ULL, sat + 24478 }, { 0x0004002020020004ULL, sat + 10074 },
+    { 0x0001002002002001ULL, sat + 79315 }, { 0x0001001000801040ULL, sat + 51779 },
+    { 0x0000004040008001ULL, sat + 13586 }, { 0x0000006800cdfff4ULL, sat + 19323 },
+    { 0x0040200010080010ULL, sat + 70612 }, { 0x0000080010040010ULL, sat + 83652 },
+    { 0x0004010008020008ULL, sat + 63110 }, { 0x0000040020200200ULL, sat + 34496 },
+    { 0x0002008010100100ULL, sat + 84966 }, { 0x0000008020010020ULL, sat + 54341 },
+    { 0x0000008020200040ULL, sat + 60421 }, { 0x0000820020004020ULL, sat + 86402 },
+    { 0x00fffd1800300030ULL, sat + 50245 }, { 0x007fff7fbfd40020ULL, sat + 76622 },
+    { 0x003fffbd00180018ULL, sat + 84676 }, { 0x001fffde80180018ULL, sat + 78757 },
+    { 0x000fffe0bfe80018ULL, sat + 37346 }, { 0x0001000080202001ULL, sat +   370 },
+    { 0x0003fffbff980180ULL, sat + 42182 }, { 0x0001fffdff9000e0ULL, sat + 45385 },
+    { 0x00fffefeebffd800ULL, sat + 61659 }, { 0x007ffff7ffc01400ULL, sat + 12790 },
+    { 0x003fffbfe4ffe800ULL, sat + 16762 }, { 0x001ffff01fc03000ULL, sat +     0 },
+    { 0x000fffe7f8bfe800ULL, sat + 38380 }, { 0x0007ffdfdf3ff808ULL, sat + 11098 },
+    { 0x0003fff85fffa804ULL, sat + 21803 }, { 0x0001fffd75ffa802ULL, sat + 39189 },
+    { 0x00ffffd7ffebffd8ULL, sat + 58628 }, { 0x007fff75ff7fbfd8ULL, sat + 44116 },
+    { 0x003fff863fbf7fd8ULL, sat + 78357 }, { 0x001fffbfdfd7ffd8ULL, sat + 44481 },
+    { 0x000ffff810280028ULL, sat + 64134 }, { 0x0007ffd7f7feffd8ULL, sat + 41759 },
+    { 0x0003fffc0c480048ULL, sat +  1394 }, { 0x0001ffffafd7ffd8ULL, sat + 40910 },
+    { 0x00ffffe4ffdfa3baULL, sat + 66516 }, { 0x007fffef7ff3d3daULL, sat +  3897 },
+    { 0x003fffbfdfeff7faULL, sat +  3930 }, { 0x001fffeff7fbfc22ULL, sat + 72934 },
+    { 0x0000020408001001ULL, sat + 72662 }, { 0x0007fffeffff77fdULL, sat + 56325 },
+    { 0x0003ffffbf7dfeecULL, sat + 66501 }, { 0x0001ffff9dffa333ULL, sat + 14826 }
+};
+
+Magic<BISHOP> BishopMagics[SQUARE_NB] = {
+    { 0x007fbfbfbfbfbfffULL, sat +  5378 }, { 0x0000a060401007fcULL, sat +  4093 },
+    { 0x0001004008020000ULL, sat +  4314 }, { 0x0000806004000000ULL, sat +  6587 },
+    { 0x0000100400000000ULL, sat +  6491 }, { 0x000021c100b20000ULL, sat +  6330 },
+    { 0x0000040041008000ULL, sat +  5609 }, { 0x00000fb0203fff80ULL, sat + 22236 },
+    { 0x0000040100401004ULL, sat +  6106 }, { 0x0000020080200802ULL, sat +  5625 },
+    { 0x0000004010202000ULL, sat + 16785 }, { 0x0000008060040000ULL, sat + 16817 },
+    { 0x0000004402000000ULL, sat +  6842 }, { 0x0000000801008000ULL, sat +  7003 },
+    { 0x000007efe0bfff80ULL, sat +  4197 }, { 0x0000000820820020ULL, sat +  7356 },
+    { 0x0000400080808080ULL, sat +  4602 }, { 0x00021f0100400808ULL, sat +  4538 },
+    { 0x00018000c06f3fffULL, sat + 29531 }, { 0x0000258200801000ULL, sat + 45393 },
+    { 0x0000240080840000ULL, sat + 12420 }, { 0x000018000c03fff8ULL, sat + 15763 },
+    { 0x00000a5840208020ULL, sat +  5050 }, { 0x0000020008208020ULL, sat +  4346 },
+    { 0x0000804000810100ULL, sat +  6074 }, { 0x0001011900802008ULL, sat +  7866 },
+    { 0x0000804000810100ULL, sat + 32139 }, { 0x000100403c0403ffULL, sat + 57673 },
+    { 0x00078402a8802000ULL, sat + 55365 }, { 0x0000101000804400ULL, sat + 15818 },
+    { 0x0000080800104100ULL, sat +  5562 }, { 0x00004004c0082008ULL, sat +  6390 },
+    { 0x0001010120008020ULL, sat +  7930 }, { 0x000080809a004010ULL, sat + 13329 },
+    { 0x0007fefe08810010ULL, sat +  7170 }, { 0x0003ff0f833fc080ULL, sat + 27267 },
+    { 0x007fe08019003042ULL, sat + 53787 }, { 0x003fffefea003000ULL, sat +  5097 },
+    { 0x0000101010002080ULL, sat +  6643 }, { 0x0000802005080804ULL, sat +  6138 },
+    { 0x0000808080a80040ULL, sat +  7418 }, { 0x0000104100200040ULL, sat +  7898 },
+    { 0x0003ffdf7f833fc0ULL, sat + 42012 }, { 0x0000008840450020ULL, sat + 57350 },
+    { 0x00007ffc80180030ULL, sat + 22813 }, { 0x007fffdd80140028ULL, sat + 56693 },
+    { 0x00020080200a0004ULL, sat +  5818 }, { 0x0000101010100020ULL, sat +  7098 },
+    { 0x0007ffdfc1805000ULL, sat +  4451 }, { 0x0003ffefe0c02200ULL, sat +  4709 },
+    { 0x0000000820806000ULL, sat +  4794 }, { 0x0000000008403000ULL, sat + 13364 },
+    { 0x0000000100202000ULL, sat +  4570 }, { 0x0000004040802000ULL, sat +  4282 },
+    { 0x0004010040100400ULL, sat + 14964 }, { 0x00006020601803f4ULL, sat +  4026 },
+    { 0x0003ffdfdfc28048ULL, sat +  4826 }, { 0x0000000820820020ULL, sat +  7354 },
+    { 0x0000000008208060ULL, sat +  4848 }, { 0x0000000000808020ULL, sat + 15946 },
+    { 0x0000000001002020ULL, sat + 14932 }, { 0x0000000401002008ULL, sat + 16588 },
+    { 0x0000004040404040ULL, sat +  6905 }, { 0x007fff9fdf7ff813ULL, sat + 16076 }
+};
+
+#undef sat
 
 /// safe_destination() returns the bitboard of target square for the given step
 /// from the given square. If the step is off the board, returns empty bitboard.
@@ -166,8 +164,8 @@ void Bitboards::init() {
       for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
           SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
 
-  init_magics<  ROOK>(SlideAttackTable, RookMagics);
-  init_magics<BISHOP>(SlideAttackTable, BishopMagics);
+  init_magics< ROOK >( RookMagics );
+  init_magics<BISHOP>(BishopMagics);
 
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
   {
@@ -220,7 +218,7 @@ namespace {
   // As a reference see www.chessprogramming.org/Magic_Bitboards. In particular,
   // here we use the so called "fixed shift fancy magic bitboards" approach.
   template<PieceType Pt>
-  void init_magics(Bitboard table[], Magic<Pt> magics[]) {
+  void init_magics(Magic<Pt> magics[]) {
     int size = 0;
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -229,7 +227,6 @@ namespace {
         Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(s)) | ((FileABB | FileHBB) & ~file_bb(s));
 
         Magic<Pt>& m = magics[s];
-        KnownMagic knownMagic = Pt == ROOK ? KnownRookMagics[s] : KnownBishopMagics[s];
 
         // Given a square 's', the mask is the bitboard of sliding attacks from
         // 's' computed on an empty board.
@@ -241,18 +238,8 @@ namespace {
             // previous square's end offset as the current square's starting offset.
             // Rooks are stored in entries 0 through 0x18FFFF,
             // bishops are stored in entries 0x190000 through 0x19147F.
-            constexpr int startOffset = Pt == ROOK ? 0 : 0x19000;
-            m.attacks = s == SQ_A1 ? table + startOffset : magics[s - 1].attacks + size;
-        }
-        else
-        {
-            // For magic bitboards indexing we use pre-computed magics values and
-            // offsets. Since we are using the "fixed shift" approach we do not need
-            // to calculate the shift, because the magic product will always resolve
-            // a unique index using a 64-12 bit shift for rooks and 64-9 bit shift
-            // for bishops.
-            m.magic = knownMagic.magic;
-            m.attacks = table + knownMagic.offset;
+            constexpr unsigned startOffset = Pt == ROOK ? 0 : 0x19000;
+            m.attacks = s == SQ_A1 ? SlideAttackTable + startOffset : magics[s - 1].attacks + size;
         }
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
@@ -262,9 +249,9 @@ namespace {
         do {
             Bitboard reference = sliding_attack(Pt, s, occupied);
 
-            unsigned index = m.index(occupied);
-            assert(m.attacks[index] == 0 || m.attacks[index] == reference);
-            m.attacks[index] = reference;
+            unsigned idx = m.index(occupied);
+            assert(m.attacks[idx] == 0 || m.attacks[idx] == reference);
+            m.attacks[idx] = reference;
 
             size++;
             occupied = (occupied - m.mask) & m.mask;

@@ -81,20 +81,14 @@ extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
 
-// Used for storing pre-computed magics and their positions in
-// an attack table.
-struct KnownMagic
-{
-  Bitboard magic;
-  unsigned offset;
-};
-
 // Magic holds all magic bitboards relevant data for a single square
 template<PieceType Pt>
 struct Magic {
   Bitboard  mask;
   Bitboard  magic;
   Bitboard* attacks;
+
+  Magic(Bitboard m, Bitboard *table) : magic(m), attacks(table) {};
 
   // Compute the attack's index using either the BMI2 PEXT instruction,
   // or by the 'fixed shift fancy magic bitboards' approach.
