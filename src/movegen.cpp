@@ -58,19 +58,16 @@ namespace {
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     const Square ksq = pos.square<KING>(Them);
-    Bitboard emptySquares;
+    const Bitboard emptySquares = Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces();
+    const Bitboard enemies      = Type == EVASIONS ? pos.checkers()
+                                : Type == CAPTURES ? target : pos.pieces(Them);
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
 
-    Bitboard enemies = (Type == EVASIONS ? pos.checkers()
-                     :  Type == CAPTURES ? target : pos.pieces(Them));
-
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
-
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRank3BB) & emptySquares;
 
@@ -106,15 +103,12 @@ namespace {
     // Promotions and underpromotions
     if (pawnsOn7)
     {
-        if (Type == CAPTURES)
-            emptySquares = ~pos.pieces();
-
-        if (Type == EVASIONS)
-            emptySquares &= target;
-
         Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
         Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
         Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+
+        if (Type == EVASIONS)
+            b3 &= target;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(b1), ksq);
