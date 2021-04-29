@@ -79,32 +79,7 @@ extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
-
-
-/// Magic holds all magic bitboards relevant data for a single square
-struct Magic {
-  Bitboard  mask;
-  Bitboard  magic;
-  Bitboard* attacks;
-  unsigned  shift;
-
-  // Compute the attack's index using the 'magic bitboards' approach
-  unsigned index(Bitboard occupied) const {
-
-    if (HasPext)
-        return unsigned(pext(occupied, mask));
-
-    if (Is64Bit)
-        return unsigned(((occupied & mask) * magic) >> shift);
-
-    unsigned lo = unsigned(occupied) & unsigned(mask);
-    unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
-    return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> shift;
-  }
-};
-
-extern Magic RookMagics[SQUARE_NB];
-extern Magic BishopMagics[SQUARE_NB];
+extern Bitboard DirectionMask[8][SQUARE_NB];
 
 inline Bitboard square_bb(Square s) {
   assert(is_ok(s));
@@ -304,6 +279,21 @@ inline Bitboard attacks_bb(Square s) {
 /// assuming the board is occupied according to the passed Bitboard.
 /// Sliding piece attacks do not continue passed an occupied square.
 
+template<Direction dir>
+inline Bitboard attack_ray(Square s, Bitboard occupied) {
+  constexpr int idx = dir < WEST ? dir + 9 : dir > EAST ? dir - 2 : dir < 0 ? 3 : 4;
+  Bitboard m = DirectionMask[idx][s] & occupied;
+
+  if constexpr (dir > 0)
+      return m ^ ((m - 1) & DirectionMask[idx][s]);
+  else if (!m)
+      return DirectionMask[idx][s];
+  else{
+      m |= m >> -dir, m |= m >> 2 * -dir, m |= m >> 4 * -dir;
+      return DirectionMask[idx][s] & ~(m >> -dir);
+  }
+}
+
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
@@ -311,9 +301,11 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
   switch (Pt)
   {
-  case BISHOP: return BishopMagics[s].attacks[BishopMagics[s].index(occupied)];
-  case ROOK  : return   RookMagics[s].attacks[  RookMagics[s].index(occupied)];
-  case QUEEN : return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
+  case BISHOP: return attack_ray<SOUTH_WEST>(s, occupied) | attack_ray<SOUTH_EAST>(s, occupied) 
+                    | attack_ray<NORTH_WEST>(s, occupied) | attack_ray<NORTH_EAST>(s, occupied);
+  case ROOK  : return attack_ray<SOUTH     >(s, occupied) | attack_ray<      WEST>(s, occupied) 
+                    | attack_ray<NORTH     >(s, occupied) | attack_ray<      EAST>(s, occupied);
+  case QUEEN : return attacks_bb<BISHOP    >(s, occupied) | attacks_bb<      ROOK>(s, occupied);
   default    : return PseudoAttacks[Pt][s];
   }
 }
