@@ -286,9 +286,7 @@ inline Bitboard attack_ray(Square s, Bitboard occupied) {
 
   if constexpr (dir > 0)
       return m ^ ((m - 1) & DirectionMask[idx][s]);
-  else if (!m)
-      return DirectionMask[idx][s];
-  else{
+  else {
       m |= m >> -dir, m |= m >> 2 * -dir, m |= m >> 4 * -dir;
       return DirectionMask[idx][s] & ~(m >> -dir);
   }
