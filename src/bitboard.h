@@ -71,6 +71,12 @@ constexpr Bitboard KingFlank[FILE_NB] = {
   KingSide, KingSide, KingSide ^ FileEBB
 };
 
+constexpr Bitboard RankBB[RANK_NB] = { Rank1BB, Rank2BB, Rank3BB, Rank4BB,
+                                       Rank5BB, Rank6BB, Rank7BB, Rank8BB };
+
+constexpr Bitboard FileBB[FILE_NB] = { FileABB, FileBBB, FileCBB, FileDBB,
+                                       FileEBB, FileFBB, FileGBB, FileHBB };
+
 extern uint8_t PopCnt16[1 << 16];
 extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
@@ -141,7 +147,7 @@ constexpr bool opposite_colors(Square s1, Square s2) {
 /// the given file or rank.
 
 constexpr Bitboard rank_bb(Rank r) {
-  return Rank1BB << (8 * r);
+  return RankBB[r];
 }
 
 constexpr Bitboard rank_bb(Square s) {
@@ -149,7 +155,7 @@ constexpr Bitboard rank_bb(Square s) {
 }
 
 constexpr Bitboard file_bb(File f) {
-  return FileABB << f;
+  return FileBB[f];
 }
 
 constexpr Bitboard file_bb(Square s) {
