@@ -1212,7 +1212,7 @@ moves_loop: // When in check, search starts from here
               r++;
 
           // Decrease reduction if opponent's move count is high (~5 Elo)
-          if ((ss-1)->moveCount > 13 && false)
+          if ((ss-1)->moveCount > 13)
               r--;
 
           // Decrease reduction if ttMove has been singularly extended (~3 Elo)
@@ -1222,7 +1222,7 @@ moves_loop: // When in check, search starts from here
           if (captureOrPromotion)
           {
               // Increase reduction for non-checking captures likely to be bad
-              if (   !givesCheck
+              if (   !givesCheck && false
                   && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 210 * depth <= alpha)
                   r++;
           }
