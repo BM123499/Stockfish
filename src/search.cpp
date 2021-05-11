@@ -1236,7 +1236,7 @@ moves_loop: // When in check, search starts from here
               r += rootNode ? thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512 : 0;
 
               // Increase reduction for cut nodes (~10 Elo)
-              if (cutNode && false)
+              if (cutNode)
                   r += 2;
 
               // Decrease reduction for moves that escape a capture. Filter out
@@ -1253,10 +1253,10 @@ moves_loop: // When in check, search starts from here
                              - 4741;
 
               // Decrease/increase reduction by comparing opponent's stat score (~10 Elo)
-              if (ss->statScore >= -89 && (ss-1)->statScore < -116)
+              if (ss->statScore >= -89 && (ss-1)->statScore < -116 && false)
                   r--;
 
-              else if ((ss-1)->statScore >= -112 && ss->statScore < -100)
+              else if ((ss-1)->statScore >= -112 && ss->statScore < -100 && false)
                   r++;
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
