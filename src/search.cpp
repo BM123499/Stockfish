@@ -1222,7 +1222,7 @@ moves_loop: // When in check, search starts from here
           if (captureOrPromotion)
           {
               // Increase reduction for non-checking captures likely to be bad
-              if (   !givesCheck && false
+              if (   !givesCheck
                   && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 210 * depth <= alpha)
                   r++;
           }
@@ -1236,7 +1236,7 @@ moves_loop: // When in check, search starts from here
               r += rootNode ? thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512 : 0;
 
               // Increase reduction for cut nodes (~10 Elo)
-              if (cutNode)
+              if (cutNode && false)
                   r += 2;
 
               // Decrease reduction for moves that escape a capture. Filter out
