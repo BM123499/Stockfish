@@ -1193,10 +1193,7 @@ moves_loop: // When in check, search starts from here
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
               // If we are not in check use statScore, but if we are in check we use
               // the sum of main history and first continuation history with an offset.
-              if (ss->inCheck)
-                  r -= (thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)] - 3833) / 16384;
-              else
+              if (!ss->inCheck)
                   r -= ss->statScore / 14790;
           }
 
