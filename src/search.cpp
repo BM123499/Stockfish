@@ -1196,8 +1196,6 @@ moves_loop: // When in check, search starts from here
               if (ss->inCheck)
                   r -= (thisThread->mainHistory[us][from_to(move)]
                      + (*contHist[0])[movedPiece][to_sq(move)] - 3833) / 16384;
-              else
-                  r -= ss->statScore / 14790;
           }
 
           // In general we want to cap the LMR depth search at newDepth. But if
