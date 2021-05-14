@@ -565,14 +565,14 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning,
          ttCapture, singularQuietLMR;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount;
+    int moveCount, captureCount, quietCount, probCutCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     ss->inCheck        = pos.checkers();
     priorCapture       = pos.captured_piece();
     Color us           = pos.side_to_move();
-    moveCount          = captureCount = quietCount = ss->moveCount = 0;
+    moveCount          = captureCount = quietCount = probCutCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
 
@@ -936,7 +936,7 @@ moves_loop: // When in check, search starts from here
           &&  depth > 4
           &&  captureOrPromotion
           &&  excludedMove != move
-          &&  moveCount < 3 + 2 * cutNode
+          &&  probCutCount < 2 + 2 * cutNode
           &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
           // if value from transposition table is lower than probCutBeta, don't attempt probCut
           // there and in further interactions with transposition table cutoff depth is set to depth - 3
@@ -950,6 +950,7 @@ moves_loop: // When in check, search starts from here
       {
           bool ttPv = ss->ttPv;
           ss->ttPv = false;
+          probCutCount++;
 
           ss->currentMove = move;
           ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck][true]
