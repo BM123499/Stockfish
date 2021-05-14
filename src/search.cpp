@@ -945,7 +945,8 @@ moves_loop: // When in check, search starts from here
           && !(   ss->ttHit
                && tte->depth() >= depth - 3
                && ttValue != VALUE_NONE
-               && ttValue < probCutBeta))
+               && ttValue < probCutBeta)
+          &&  pos.see_ge(move, probCutBeta - ss->staticEval))
       {
           bool ttPv = ss->ttPv;
           ss->ttPv = false;
