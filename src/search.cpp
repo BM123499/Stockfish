@@ -933,7 +933,7 @@ moves_loop: // When in check, search starts from here
       newDepth = depth - 1;
 
       if (   !PvNode
-          &&  depth > 4
+          &&  depth > 6
           &&  captureOrPromotion
           &&  excludedMove != move
           &&  probCutCount < 2 + 2 * cutNode
