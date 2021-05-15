@@ -936,7 +936,7 @@ moves_loop: // When in check, search starts from here
           &&  depth > 4
           &&  captureOrPromotion
           &&  excludedMove != move
-          &&  probCutCount < 2 + 2 * cutNode
+          &&  probCutCount < 1 + cutNode
           &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
           // if value from transposition table is lower than probCutBeta, don't attempt probCut
           // there and in further interactions with transposition table cutoff depth is set to depth - 3
