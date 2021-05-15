@@ -933,10 +933,9 @@ moves_loop: // When in check, search starts from here
       newDepth = depth - 1;
 
       if (   !PvNode
-          &&  depth > 4
+          &&  depth > 5
           &&  captureOrPromotion
           &&  excludedMove != move
-          &&  moveCount < 5 + cutNode
           &&  probCutCount < 2 + 2 * cutNode
           &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
           // if value from transposition table is lower than probCutBeta, don't attempt probCut
