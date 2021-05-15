@@ -798,7 +798,7 @@ namespace {
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 24185
+        && (ss-1)->statScore < 28926
         &&  eval >= beta
         &&  eval >= ss->staticEval
         &&  ss->staticEval >= beta - 24 * depth - 34 * improving + 162 * ss->ttPv + 159
@@ -1172,12 +1172,15 @@ moves_loop: // When in check, search starts from here
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                              + (*contHist[0])[movedPiece][to_sq(move)]
                              + (*contHist[1])[movedPiece][to_sq(move)]
-                             + (*contHist[3])[movedPiece][to_sq(move)]
-                             - 4741;
+                             + (*contHist[3])[movedPiece][to_sq(move)];
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-              if (!ss->inCheck)
-                  r -= ss->statScore / 14790;
+              if (!ss->inCheck) {
+                  if (ss->statScore > 19530)
+                      r--;
+                  else if (ss->statScore < -10049)
+                      r++;
+              }
           }
 
           // In general we want to cap the LMR depth search at newDepth. But if
