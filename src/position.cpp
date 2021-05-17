@@ -1070,7 +1070,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (type_of(m) != NORMAL)
       return VALUE_ZERO >= threshold;
 
+  Color stm = sideToMove;
   Square from = from_sq(m), to = to_sq(m);
+
+  if (blockers_for_king(~stm) & from)
+      return true;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
   if (swap < 0)
@@ -1081,7 +1085,6 @@ bool Position::see_ge(Move m, Value threshold) const {
       return true;
 
   Bitboard occupied = pieces() ^ from ^ to;
-  Color stm = color_of(piece_on(from));
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
