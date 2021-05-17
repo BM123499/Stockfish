@@ -377,7 +377,7 @@ void Thread::search() {
           // Start with a small aspiration window and, in the case of a fail
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
-          failedHighCnt = 0;
+          int failedHighCnt = 0;
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
@@ -1121,11 +1121,8 @@ moves_loop: // When in check, search starts from here
       if (    depth >= 3
           &&  moveCount > 1 + 2 * rootNode
           && (  !captureOrPromotion
-              || moveCountPruning
-              || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
               || cutNode
-              || (!PvNode && !formerPv && captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())] < 3678)
-              || thisThread->ttHitAverage < 432 * TtHitAverageResolution * TtHitAverageWindow / 1024)
+              || (!PvNode && !formerPv && captureHistory[movedPiece][to_sq(move)][type_of(pos.captured_piece())] < 3678))
           && (!PvNode || ss->ply > 1 || thisThread->id() % 4 != 3))
       {
           Depth r = reduction(improving, depth, moveCount);
@@ -1140,7 +1137,7 @@ moves_loop: // When in check, search starts from here
               && !likelyFailLow)
               r -= 2;
 
-          // Increase reduction at root and non-PV nodes when the best move does not change frequently
+          // Increase reduction at root and non-PV nodes when the best move does not change frequently. (~5 Elo)
           if (   (rootNode || !PvNode)
               && thisThread->rootDepth > 10
               && thisThread->bestMoveChanges <= 2)
@@ -1159,10 +1156,6 @@ moves_loop: // When in check, search starts from here
               // Increase reduction if ttMove is a capture (~3 Elo)
               if (ttCapture)
                   r++;
-
-              // Increase reduction at root if failing high
-              if (rootNode)
-                  r += thisThread->failedHighCnt * thisThread->failedHighCnt * moveCount / 512;
 
               // Increase reduction for cut nodes (~3 Elo)
               if (cutNode)
