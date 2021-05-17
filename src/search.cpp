@@ -1101,6 +1101,7 @@ moves_loop: // When in check, search starts from here
 
       // Check extension (~4 Elo on endgame)
       else if (    givesCheck
+               &&  pos.pieces(PAWN)
                &&  pos.non_pawn_material() < 2 * BishopValueMg + 2 * RookValueMg
                && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
           extension = 1;
