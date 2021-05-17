@@ -1073,7 +1073,8 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color stm = sideToMove;
   Square from = from_sq(m), to = to_sq(m);
 
-  if (blockers_for_king(~stm) & from)
+  if (     blockers_for_king(~stm) & from
+       && !aligned(from, to, square<KING>(~stm)))
       return true;
 
   int swap = PieceValue[MG][piece_on(to)] - threshold;
