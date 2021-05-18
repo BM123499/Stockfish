@@ -56,6 +56,12 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int C[] = { 231, 503, 915, 66, 231, 206};
+int T[] = { 24185, 22, 34, 162, 159, 1062, 68, 190, 400, 140, 4791, 14790, 155};
+
+TUNE(C);
+TUNE(T);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -66,7 +72,7 @@ namespace {
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
-    return Value(231 * (d - improving));
+    return Value(C[0] * (d - improving));
   }
 
   // Reductions lookup table, initialized at startup
@@ -74,7 +80,7 @@ namespace {
 
   Depth reduction(bool i, Depth d, int mn) {
     int r = Reductions[d] * Reductions[mn];
-    return (r + 503) / 1024 + (!i && r > 915);
+    return (r + C[1]) / 1024 + (!i && r > C[2]);
   }
 
   constexpr int futility_move_count(bool improving, Depth depth) {
@@ -83,7 +89,7 @@ namespace {
 
   // History and stats update bonus, based on depth
   int stat_bonus(Depth d) {
-    return d > 14 ? 66 : 6 * d * d + 231 * d - 206;
+    return d > 14 ? C[3] : 6 * d * d + C[4] * d - C[5];
   }
 
   // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -798,10 +804,10 @@ namespace {
     // Step 8. Null move search with verification search (~40 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 24185
+        && (ss-1)->statScore < T[0]
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 22 * depth - 34 * improving + 162 * ss->ttPv + 159
+        &&  ss->staticEval >= beta - T[1] * depth - T[2] * improving + T[3] * ss->ttPv + T[4]
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
@@ -809,7 +815,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (1062 + 68 * depth) / 256 + std::min(int(eval - beta) / 190, 3);
+        Depth R = (T[5] + T[6] * depth) / 256 + std::min(int(eval - beta) / T[7], 3);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
@@ -922,7 +928,7 @@ moves_loop: // When in check, search starts from here
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
 
     // Step 11. A small Probcut idea, when we are in check
-    probCutBeta = beta + 400;
+    probCutBeta = beta + T[8];
     if (   ss->inCheck
         && !PvNode
         && depth >= 4
@@ -1073,7 +1079,7 @@ moves_loop: // When in check, search starts from here
           {
               extension = 1;
               singularQuietLMR = !ttCapture;
-              if (!PvNode && value < singularBeta - 140)
+              if (!PvNode && value < singularBeta - T[9])
                   extension = 2;
           }
 
@@ -1172,11 +1178,11 @@ moves_loop: // When in check, search starts from here
                              + (*contHist[0])[movedPiece][to_sq(move)]
                              + (*contHist[1])[movedPiece][to_sq(move)]
                              + (*contHist[3])[movedPiece][to_sq(move)]
-                             - 4791;
+                             - T[10];
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
               if (!ss->inCheck)
-                  r -= ss->statScore / 14790;
+                  r -= ss->statScore / T[11];
           }
 
           // In general we want to cap the LMR depth search at newDepth. But if
@@ -1455,7 +1461,7 @@ moves_loop: // When in check, search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = bestValue + 155;
+        futilityBase = bestValue + T[12];
     }
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
