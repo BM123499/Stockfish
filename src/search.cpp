@@ -934,6 +934,7 @@ moves_loop: // When in check, search starts from here
 
       if (   !PvNode
           &&  depth > 4
+          && !ss->inCheck
           &&  moveCount == 1
           &&  captureOrPromotion
           &&  move != excludedMove
@@ -954,7 +955,8 @@ moves_loop: // When in check, search starts from here
           ss->ttPv = false;
 
           ss->currentMove = move;
-          ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck][true]
+          ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+                                                                    [captureOrPromotion]
                                                                     [pos.moved_piece(move)]
                                                                     [to_sq(move)];
 
