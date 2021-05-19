@@ -868,7 +868,7 @@ moves_loop: // When in check, search starts from here
         && abs(beta) <= VALUE_KNOWN_WIN
        )
         return probCutBeta;
-
+    probCutBeta = beta + 209 - 44 * improving;
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
@@ -932,6 +932,55 @@ moves_loop: // When in check, search starts from here
       // Calculate new depth for this move
       newDepth = depth - 1;
 
+      if (   !PvNode
+          &&  depth > 4
+          &&  moveCount == 1
+          &&  captureOrPromotion
+          &&  move != excludedMove
+          &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
+          // if value from transposition table is lower than probCutBeta, don't attempt probCut
+          // there and in further interactions with transposition table cutoff depth is set to depth - 3
+          // because probCut search has depth set to depth - 4 but we also do a move before it
+          // so effective depth is equal to depth - 3
+          && !(   ss->ttHit
+               && tte->depth() >= depth - 3
+               && ttValue != VALUE_NONE
+               && ttValue < probCutBeta))
+      {
+          assert(probCutBeta < VALUE_INFINITE);
+
+          bool ttPv = ss->ttPv;
+          ss->ttPv = false;
+
+          ss->currentMove = move;
+          ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck][true]
+                                                                    [pos.moved_piece(move)]
+                                                                    [to_sq(move)];
+
+          pos.do_move(move, st);
+
+          // Perform a preliminary qsearch to verify that the move holds
+          value = -qsearch<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1);
+
+          // If the qsearch held, perform the regular search
+          if (value >= probCutBeta)
+              value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+
+          pos.undo_move(move);
+
+          if (value >= probCutBeta)
+          {
+              // if transposition table doesn't have equal or more deep info write probCut data into it
+              if ( !(ss->ttHit
+                  && tte->depth() >= depth - 3
+                  && ttValue != VALUE_NONE))
+                  tte->save(posKey, value_to_tt(value, ss->ply), ttPv,
+                      BOUND_LOWER, depth - 3, move, ss->staticEval);
+              return value;
+          }
+
+          ss->ttPv = ttPv;
+      }
       // Step 13. Pruning at shallow depth (~200 Elo)
       if (  !rootNode
           && pos.non_pawn_material(us)
