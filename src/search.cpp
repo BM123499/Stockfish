@@ -56,8 +56,8 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-constexpr int C[] = { 225, 507, 910, 70, 241, 218};
-constexpr int T[] = { 24137, 20, 29, 167, 157, 1046, 75, 188, 405, 133, 4837, 14900, 159};
+constexpr int C[] = { 222, 507, 902, 72, 238, 218};
+constexpr int T[] = { 24082, 19, 28, 164, 159, 1060, 73, 192, 409, 129, 4838, 14896, 155};
 
 namespace {
 
