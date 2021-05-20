@@ -1099,8 +1099,9 @@ moves_loop: // When in check, search starts from here
       }
 
       // Check extension (~4 Elo on endgame)
-      else if (   !PvNode 
+      else if (   !PvNode
                &&  givesCheck
+               && !ss->inCheck
                &&  pos.count<ALL_PIECES>() <= 12
                && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
           extension = 1;
