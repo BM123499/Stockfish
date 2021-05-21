@@ -1102,7 +1102,7 @@ moves_loop: // When in check, search starts from here
       else if (   !PvNode
                &&  givesCheck
                && !ss->inCheck
-               &&  pos.count<ALL_PIECES>() <= 12
+               && 3 * pos.count<KNIGHT>() + 3 * pos.count<BISHOP>() + 5 * pos.count<ROOK>() + 9 * pos.count<QUEEN>() < 20
                && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
           extension = 1;
 
