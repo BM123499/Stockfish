@@ -563,7 +563,7 @@ namespace {
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool formerPv, givesCheck, improving, didLMR, priorCapture;
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning,
-         ttCapture, singularQuietLMR, checkExtensionDone;
+         ttCapture, singularQuietLMR;
     Piece movedPiece;
     int moveCount, captureCount, quietCount;
 
@@ -951,7 +951,7 @@ moves_loop: // When in check, search starts from here
                                       ss->ply);
 
     value = bestValue;
-    checkExtensionDone = singularQuietLMR = moveCountPruning = false;
+    singularQuietLMR = moveCountPruning = false;
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -1100,10 +1100,10 @@ moves_loop: // When in check, search starts from here
 
       // Check extension (~4 Elo on endgame)
       else if (    givesCheck
-               && !checkExtensionDone
+               &&  moveCount == 1
                &&  pos.count<ALL_PIECES>() - pos.count<PAWN>() <= 6
-               && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
-          extension = checkExtensionDone = true;
+               &&  pos.see_ge(move))
+          extension = true;
 
       // Add extension to new depth
       newDepth += extension;
