@@ -169,7 +169,7 @@ namespace Stockfish::Eval::NNUE {
 
       if (   adjusted
           && abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK)) <= BishopValueMg - KnightValueMg)
-          sum += (output[0] - psqt)) / 16;
+          sum += (output[0] - psqt) / 16;
 
       return static_cast<Value>( sum / OutputScale );
     }
