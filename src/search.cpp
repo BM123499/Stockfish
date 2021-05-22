@@ -1119,6 +1119,7 @@ moves_loop: // When in check, search starts from here
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
       if (    depth >= 3
+          && !ss->inCheck
           &&  moveCount > 1 + 2 * rootNode
           && (  !captureOrPromotion
               || cutNode
