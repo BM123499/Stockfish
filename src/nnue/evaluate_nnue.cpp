@@ -165,17 +165,11 @@ namespace Stockfish::Eval::NNUE {
     else
     {
       const auto output = network[bucket]->propagate(transformedFeatures, buffer);
+      int sum = psqt + output[0];
 
-      int materialist = psqt;
-      int positional  = output[0];
-
-      int delta_npm = abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK));
-      int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
-
-      int A = 128 - entertainment;
-      int B = 128 + entertainment;
-
-      int sum = (A * materialist + B * positional) / 128;
+      if (   adjusted
+          && abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK)) <= BishopValueMg - KnightValueMg)
+          sum += (output[0] - psqt)) / 16;
 
       return static_cast<Value>( sum / OutputScale );
     }
