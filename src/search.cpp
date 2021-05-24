@@ -795,7 +795,8 @@ namespace {
         &&  ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159
         && !excludedMove
         &&  pos.non_pawn_material(us)
-        && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
+        && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor)
+        && (pos.capture_or_promotion((ss-1)->currentMove) || (ss-1)->currentMove > 4))
     {
         assert(eval - beta >= 0);
 
