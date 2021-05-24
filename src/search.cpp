@@ -1099,7 +1099,8 @@ moves_loop: // When in check, search starts from here
       }
 
       // Check extension (~4 Elo on endgame)
-      else if (    givesCheck
+      else if (    depth > 4
+               &&  givesCheck
                &&  move == ttMove
                &&  pos.count<ALL_PIECES>() <= 12
                &&  pos.count<ALL_PIECES>() - pos.count<PAWN>() <= 6
