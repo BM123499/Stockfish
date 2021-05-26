@@ -56,6 +56,9 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int T[7] = {209, 44, 218, 174, 157, 28255, 537};
+TUNE(T);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -846,7 +849,7 @@ namespace {
         }
     }
 
-    probCutBeta = beta + 209 - 44 * improving;
+    probCutBeta = beta + T[0] - T[1] * improving;
 
     // Step 9. ProbCut (~4 Elo)
     // If we have a good enough capture and a reduced search returns a value
@@ -1020,7 +1023,7 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // SEE based pruning
-              if (!pos.see_ge(move, Value(-218) * depth)) // (~25 Elo)
+              if (!pos.see_ge(move, Value(-T[2]) * depth)) // (~25 Elo)
                   continue;
           }
           else
@@ -1034,11 +1037,11 @@ moves_loop: // When in check, search starts from here
               // Futility pruning: parent node (~5 Elo)
               if (   lmrDepth < 7
                   && !ss->inCheck
-                  && ss->staticEval + 174 + 157 * lmrDepth <= alpha
+                  && ss->staticEval + T[3] + T[4] * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
                     + (*contHist[3])[movedPiece][to_sq(move)]
-                    + (*contHist[5])[movedPiece][to_sq(move)] / 3 < 28255)
+                    + (*contHist[5])[movedPiece][to_sq(move)] / 3 < T[5])
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
@@ -1133,7 +1136,7 @@ moves_loop: // When in check, search starts from here
           Depth r = reduction(improving, depth, moveCount);
 
           // Decrease reduction if the ttHit running average is large (~0 Elo)
-          if (thisThread->ttHitAverage > 537 * TtHitAverageResolution * TtHitAverageWindow / 1024)
+          if (thisThread->ttHitAverage > T[6] * TtHitAverageResolution * TtHitAverageWindow / 1024)
               r--;
 
           // Decrease reduction if position is or has been on the PV
