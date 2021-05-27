@@ -1153,7 +1153,7 @@ moves_loop: // When in check, search starts from here
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode)
-              r += 1 + !captureOrPromotion;
+              r += ((ss-1)->moveCount > 1) + !captureOrPromotion;
 
           if (!captureOrPromotion)
           {
