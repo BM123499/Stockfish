@@ -639,6 +639,7 @@ namespace {
         && depth > 12
         && ss->ply - 1 < MAX_LPH
         && !priorCapture
+        && !(ss-1)->inCheck
         && is_ok((ss-1)->currentMove))
         thisThread->lowPlyHistory[ss->ply - 1][from_to((ss-1)->currentMove)] << stat_bonus(depth - 5);
 
