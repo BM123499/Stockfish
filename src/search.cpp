@@ -56,8 +56,7 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-int T[7] = {221, 51, 235, 138, 151, 28243, 556};
-TUNE(T);
+constexpr int T[7] = {221, 51, 235, 138, 151, 28243, 556};
 
 namespace {
 
