@@ -1120,6 +1120,7 @@ moves_loop: // When in check, search starts from here
       // cases where we extend a son if it has good chances to be "interesting".
       if (    depth >= 3
           &&  moveCount > 1 + 2 * rootNode
+          &&  pos.non_pawn_material(us)
           && (  !captureOrPromotion
               || (cutNode && (ss-1)->moveCount > 1)
               || (!PvNode && !formerPv))
