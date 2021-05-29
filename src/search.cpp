@@ -253,7 +253,7 @@ void Thread::search() {
   // To allow access to (ss-7) up to (ss+2), the stack must be oversized.
   // The former is needed to allow update_continuation_histories(ss-1, ...),
   // which accesses its argument at ss-6, also near the root.
-  // The latter is needed for statScores and killer initialization.
+  // The latter is needed for statScores initialization.
   Stack stack[MAX_PLY+10], *ss = stack+7;
   Move  pv[MAX_PLY+1];
   Value bestValue, alpha, beta, delta;
@@ -610,7 +610,6 @@ namespace {
     (ss+1)->ply = ss->ply + 1;
     (ss+1)->ttPv = false;
     (ss+1)->excludedMove = bestMove = MOVE_NONE;
-    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
     Square prevSq = to_sq((ss-1)->currentMove);
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -947,7 +946,6 @@ moves_loop: // When in check, search starts from here
                                       &captureHistory,
                                       contHist,
                                       countermove,
-                                      ss->killers,
                                       ss->ply);
 
     value = bestValue;
@@ -1660,10 +1658,8 @@ moves_loop: // When in check, search starts from here
         // Increase stats for the best move in case it was a capture move
         captureHistory[moved_piece][to_sq(bestMove)][captured] << bonus1;
 
-    // Extra penalty for a quiet early move that was not a TT move or
-    // main killer move in previous ply when it gets refuted.
-    if (   ((ss-1)->moveCount == 1 + (ss-1)->ttHit || ((ss-1)->currentMove == (ss-1)->killers[0]))
-        && !pos.captured_piece())
+    // Extra penalty for a quiet early move that was not a TT move
+    if ((ss-1)->moveCount == 1 + (ss-1)->ttHit && !pos.captured_piece())
             update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, -bonus1);
 
     // Decrease stats for all non-best capture moves
@@ -1695,13 +1691,6 @@ moves_loop: // When in check, search starts from here
   // update_quiet_stats() updates move sorting heuristics
 
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus, int depth) {
-
-    // Update killers
-    if (ss->killers[0] != move)
-    {
-        ss->killers[1] = ss->killers[0];
-        ss->killers[0] = move;
-    }
 
     Color us = pos.side_to_move();
     Thread* thisThread = pos.this_thread();
