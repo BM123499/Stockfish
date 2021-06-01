@@ -1699,6 +1699,9 @@ moves_loop: // When in check, search starts from here
   // update_quiet_stats() updates move sorting heuristics
 
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus, int depth) {
+    
+    if (ss->inCheck)
+        return;
 
     // Update killers
     if (ss->killers[0] != move)
