@@ -59,7 +59,7 @@ namespace {
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh, const LowPlyHistory* lp,
                        const CapturePieceToHistory* cph, const PieceToHistory** ch, Move cm, const Move* killers, int pl)
            : pos(p), mainHistory(mh), lowPlyHistory(lp), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), ply(pl) {
+             ttMove(ttm), refutations{{cm, 0}, {killers[0], 0}, {killers[1], 0}}, depth(d), ply(pl) {
 
   assert(d > 0);
 
@@ -180,9 +180,9 @@ top:
       endMoves = std::end(refutations);
 
       // If the countermove is the same as a killer, skip it
-      if (   refutations[0].move == refutations[2].move
-          || refutations[1].move == refutations[2].move)
-          --endMoves;
+      if (   refutations[0].move == refutations[1].move
+          || refutations[0].move == refutations[2].move)
+          ++cur;
 
       ++stage;
       [[fallthrough]];
