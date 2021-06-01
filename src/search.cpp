@@ -638,6 +638,7 @@ namespace {
     if (   ss->ttPv
         && depth > 12
         && ss->ply - 1 < MAX_LPH
+        && !ss->inCheck
         && !priorCapture
         && is_ok((ss-1)->currentMove))
         thisThread->lowPlyHistory[ss->ply - 1][from_to((ss-1)->currentMove)] << stat_bonus(depth - 5);
@@ -1724,7 +1725,7 @@ moves_loop: // When in check, search starts from here
     }
 
     // Update low ply history
-    if (depth > 11 && ss->ply < MAX_LPH)
+    if (depth > 11 && ss->ply < MAX_LPH && !ss->inCheck)
         thisThread->lowPlyHistory[ss->ply][from_to(move)] << stat_bonus(depth - 7);
   }
 
