@@ -267,6 +267,9 @@ void Thread::search() {
   std::memset(ss-7, 0, 10 * sizeof(Stack));
   for (int i = 7; i > 0; i--)
       (ss-i)->continuationHistory = &this->continuationHistory[0][0][NO_PIECE][0]; // Use as a sentinel
+ 
+  for (int i = 1; i <= MAX_PLY; ++i)
+      (ss+i)->ply = i;
 
   ss->pv = pv;
 
@@ -607,7 +610,6 @@ namespace {
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
-    (ss+1)->ply = ss->ply + 1;
     (ss+1)->ttPv = false;
     (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -1379,7 +1381,6 @@ moves_loop: // When in check, search starts from here
     }
 
     Thread* thisThread = pos.this_thread();
-    (ss+1)->ply = ss->ply + 1;
     bestMove = MOVE_NONE;
     ss->inCheck = pos.checkers();
     moveCount = 0;
