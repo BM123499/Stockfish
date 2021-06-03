@@ -29,19 +29,17 @@ namespace {
   ExtMove* make_promotions(ExtMove* moveList, Square to, Square ksq) {
 
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
-    {
         *moveList++ = make<PROMOTION>(to - D, to, QUEEN);
-        if (attacks_bb<KNIGHT>(to) & ksq)
-            *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
-    }
 
     if (Type == QUIETS || Type == EVASIONS || Type == NON_EVASIONS)
     {
         *moveList++ = make<PROMOTION>(to - D, to, ROOK);
         *moveList++ = make<PROMOTION>(to - D, to, BISHOP);
-        if (!(attacks_bb<KNIGHT>(to) & ksq))
-            *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
+        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
     }
+
+    if (Type == QUIET_CHECKS && attacks_bb<KNIGHT>(to) & ksq)
+        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
 
     return moveList;
   }
