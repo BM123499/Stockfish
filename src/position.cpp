@@ -258,7 +258,6 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
       && ((ss >> row) && (row == (sideToMove == WHITE ? '6' : '3'))))
   {
-      assert(th != nullptr);
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
       // En passant square will be considered only if
@@ -270,17 +269,8 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
                && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
   }
 
-  // It's necessary for st->previous to be intialized because legality check relies on its existence
-  if (enpassant) {
-      move_piece(st->epSquare - pawn_push(sideToMove), st->epSquare + pawn_push(sideToMove));
-      sideToMove = ~sideToMove;
-      th->sentinelState.epSquare = SQ_NONE;
-      th->sentinelState.castlingRights = st->castlingRights;
-      set_state(st->previous = &th->sentinelState);
-      sideToMove = ~sideToMove;
-      move_piece(st->epSquare + pawn_push(sideToMove), st->epSquare - pawn_push(sideToMove));
-  }
-  else
+  // It's necessary for st->previous to be intialized in this way because legality check relies on its existence
+  if (!enpassant)
       st->epSquare = SQ_NONE;
 
   // 5-6. Halfmove clock and fullmove number
@@ -515,11 +505,23 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 
-  // st->previous->blockersForKing consider capsq as empty.
-  // If pinned, it has to move along the king ray.
+  // En passant captures are a tricky special case. Because they are rather
+  // uncommon, we do it simply by testing whether the king is attacked after
+  // the move is made.
   if (type_of(m) == EN_PASSANT)
-      return   !(st->previous->blockersForKing[sideToMove] & from)
-            || aligned(from, to, square<KING>(us));
+  {
+      Square ksq = square<KING>(us);
+      Square capsq = to - pawn_push(us);
+      Bitboard occupied = (pieces() ^ from ^ capsq) | to;
+
+      assert(to == ep_square());
+      assert(moved_piece(m) == make_piece(us, PAWN));
+      assert(piece_on(capsq) == make_piece(~us, PAWN));
+      assert(piece_on(to) == NO_PIECE);
+
+      return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
+            && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
+  }
 
   // Castling moves generation does not check if the castling path is clear of
   // enemy attacks, it is delayed at a later time: now!
@@ -652,14 +654,18 @@ bool Position::gives_check(Move m) const {
   case PROMOTION:
       return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
 
-  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
-  // The only discovery check that wasn't handle is through capsq and fromsq
-  // So the King must be in the same rank as fromsq to consider this possibility.
-  // st->previous->blockersForKing consider capsq as empty.
+  // En passant capture with check? We have already handled the case
+  // of direct checks and ordinary discovered check, so the only case we
+  // need to handle is the unusual case of a discovered check through
+  // the captured pawn.
   case EN_PASSANT:
-      return st->previous->checkersBB
-          || (   rank_of(square<KING>(~sideToMove)) == rank_of(from)
-              && st->previous->blockersForKing[~sideToMove] & from);
+  {
+      Square capsq = make_square(file_of(to), rank_of(from));
+      Bitboard b = (pieces() ^ from ^ capsq) | to;
+
+      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
+            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
+  }
 
   default: //CASTLING
   {
