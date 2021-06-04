@@ -260,6 +260,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
       && ((ss >> row) && (row == (sideToMove == WHITE ? '6' : '3'))))
   {
+      assert(th != nullptr);
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
       // En passant square will be considered only if
@@ -276,12 +277,12 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
 
   // It's necessary for st->previous to be intialized in this way because legality check relies on its existence
   if (enpassant) {
-      st->previous = new StateInfo();
-      remove_piece(st->epSquare - pawn_push(sideToMove));
+      st->previous = &th->sentinelState;
+      move_piece(st->epSquare - pawn_push(sideToMove), st->epSquare + pawn_push(sideToMove));
       st->previous->checkersBB = attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
       st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
       st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
-      put_piece(make_piece(~sideToMove, PAWN), st->epSquare - pawn_push(sideToMove));
+      move_piece(st->epSquare + pawn_push(sideToMove), st->epSquare - pawn_push(sideToMove));
   }
   else
       st->epSquare = SQ_NONE;
