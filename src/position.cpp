@@ -279,9 +279,9 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   if (enpassant) {
       st->previous = &th->sentinelState;
       move_piece(st->epSquare - pawn_push(sideToMove), st->epSquare + pawn_push(sideToMove));
-      st->previous->checkersBB = attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
-      st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
-      st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
+      sideToMove = ~sideToMove;
+      set_state(st->previous);
+      sideToMove = ~sideToMove;
       move_piece(st->epSquare + pawn_push(sideToMove), st->epSquare - pawn_push(sideToMove));
   }
   else
