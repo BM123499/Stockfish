@@ -33,9 +33,9 @@ namespace {
 
     if (Type == QUIETS || Type == EVASIONS || Type == NON_EVASIONS)
     {
+        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
         *moveList++ = make<PROMOTION>(to - D, to, ROOK);
         *moveList++ = make<PROMOTION>(to - D, to, BISHOP);
-        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
     }
 
     return moveList;
