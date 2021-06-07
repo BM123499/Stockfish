@@ -1183,7 +1183,7 @@ moves_loop: // When in check, search starts from here
           // In general we want to cap the LMR depth search at newDepth. But if
           // reductions are really negative and movecount is low, we allow this move
           // to be searched deeper than the first move.
-          Depth d = std::clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5));
+          Depth d = std::clamp(newDepth - r, 1, std::min(maxNextDepth, newDepth + (r < -1 && moveCount <= 5)));
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
@@ -1200,7 +1200,7 @@ moves_loop: // When in check, search starts from here
       // Step 17. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, std::min(maxNextDepth, newDepth), !cutNode);
 
           // If the move passed LMR update its stats
           if (didLMR && !captureOrPromotion)
