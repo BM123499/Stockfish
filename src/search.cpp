@@ -1163,6 +1163,9 @@ moves_loop: // When in check, search starts from here
           if (cutNode)
               r += 1 + !captureOrPromotion;
 
+          if (type_of(move) == PROMOTION && promotion_type(move) != QUEEN)
+              r += 3;
+
           if (!captureOrPromotion)
           {
               // Increase reduction if ttMove is a capture (~3 Elo)
