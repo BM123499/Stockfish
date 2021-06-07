@@ -1185,7 +1185,7 @@ moves_loop: // When in check, search starts from here
           // to be searched deeper than the first move.
           Depth d = std::clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5));
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, !cutNode);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
