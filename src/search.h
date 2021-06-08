@@ -51,7 +51,7 @@ struct Stack {
   int moveCount;
   bool inCheck;
   bool ttPv;
-  bool ttHit;
+  bool legalttMove;
 };
 
 
