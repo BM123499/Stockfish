@@ -742,7 +742,7 @@ namespace {
     {
         // Skip early pruning when in check
         ss->staticEval = eval = VALUE_NONE;
-        improving = false;
+        improving = ss->ttPv;
         goto moves_loop;
     }
     else if (ss->ttHit)
