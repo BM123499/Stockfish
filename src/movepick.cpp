@@ -196,9 +196,12 @@ top:
       [[fallthrough]];
 
   case QUIET_INIT:
-      if (!skipQuiets)
+      cur = endBadCaptures;
+
+      if (skipQuiets)
+          endMoves = generate<QUIET_CHECKS>(pos, cur);
+      else
       {
-          cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
@@ -209,10 +212,10 @@ top:
       [[fallthrough]];
 
   case QUIET:
-      if (   !skipQuiets
-          && select<Next>([&](){return   *cur != refutations[0].move
-                                      && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
+      if (select<Next>([&](){return   (!skipQuiets || pos.gives_check(*cur))
+                                   && *cur != refutations[0].move
+                                   && *cur != refutations[1].move
+                                   && *cur != refutations[2].move;}))
           return *(cur - 1);
 
       // Prepare the pointers to loop over the bad captures
