@@ -25,7 +25,7 @@ namespace Stockfish {
 namespace {
 
   enum Stages {
-    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, BAD_CAPTURE,
+    MAIN_TT, CAPTURE_INIT, GOOD_CAPTURE, REFUTATION, QUIET_INIT, QUIET, CHECK_QUIETS, BAD_CAPTURE_INIT, BAD_CAPTURE,
     EVASION_TT, EVASION_INIT, EVASION,
     PROBCUT_TT, PROBCUT_INIT, PROBCUT,
     QSEARCH_TT, QCAPTURE_INIT, QCAPTURE, QCHECK_INIT, QCHECK
@@ -196,26 +196,44 @@ top:
       [[fallthrough]];
 
   case QUIET_INIT:
+      cur = endBadCaptures;
+
       if (!skipQuiets)
       {
-          cur = endBadCaptures;
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
           partial_insertion_sort(cur, endMoves, -3000 * depth);
+      }
+      else
+      {
+          endMoves = generate<QUIET_CHECKS>(pos, cur);
+
+          stage = CHECK_QUIETS;
+          goto top;
       }
 
       ++stage;
       [[fallthrough]];
 
   case QUIET:
-      if (   !skipQuiets
-          && select<Next>([&](){return   *cur != refutations[0].move
-                                      && *cur != refutations[1].move
-                                      && *cur != refutations[2].move;}))
+      if (select<Next>([&](){return   (!skipQuiets || pos.gives_check(*cur))
+                                   && *cur != refutations[0].move
+                                   && *cur != refutations[1].move
+                                   && *cur != refutations[2].move;}))
           return *(cur - 1);
+      stage = BAD_CAPTURE_INIT;
+      goto top;
 
-      // Prepare the pointers to loop over the bad captures
+  case CHECK_QUIETS:
+      if (select<Next>([&](){return   *cur != refutations[0].move
+                                   && *cur != refutations[1].move
+                                   && *cur != refutations[2].move;}))
+          return *(cur - 1);
+      ++stage;
+      [[fallthrough]];
+
+  case BAD_CAPTURE_INIT:
       cur = moves;
       endMoves = endBadCaptures;
 
