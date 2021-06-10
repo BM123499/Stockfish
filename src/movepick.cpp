@@ -201,13 +201,13 @@ top:
                             : generate<QUIETS      >(pos, cur);
 
       score<QUIETS>();
-      partial_insertion_sort(cur, endMoves, -3000 * depth);
+      partial_insertion_sort(cur, endMoves, -3000 * depth * !skipQuiets);
 
       ++stage;
       [[fallthrough]];
 
   case QUIET:
-      if (select<Next>([&](){return   (!skipQuiets || pos.gives_check(*cur))
+      if (select<Next>([&](){return   (!skipQuiets || (cur->value > 0 && pos.gives_check(*cur)))
                                    && *cur != refutations[0].move
                                    && *cur != refutations[1].move
                                    && *cur != refutations[2].move;}))
