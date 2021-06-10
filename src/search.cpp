@@ -1506,10 +1506,17 @@ moves_loop: // When in check, search starts from here
           }
       }
 
-      // Do not search moves with negative SEE values
-      if (    bestValue > VALUE_TB_LOSS_IN_MAX_PLY
-          && !pos.see_ge(move))
-          continue;
+      if (bestValue > VALUE_TB_LOSS_IN_MAX_PLY) {
+          // Continuation history based pruning
+          if (  !captureOrPromotion
+              && (*contHist[0])[pos.moved_piece(move)][to_sq(move)] < CounterMovePruneThreshold
+              && (*contHist[1])[pos.moved_piece(move)][to_sq(move)] < CounterMovePruneThreshold)
+              continue;
+
+          // Do not search moves with negative SEE values
+          if(!pos.see_ge(move))
+              continue;
+      }
 
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));
@@ -1526,13 +1533,6 @@ moves_loop: // When in check, search starts from here
                                                                 [captureOrPromotion]
                                                                 [pos.moved_piece(move)]
                                                                 [to_sq(move)];
-
-      // Continuation history based pruning
-      if (  !captureOrPromotion
-          && bestValue > VALUE_TB_LOSS_IN_MAX_PLY
-          && (*contHist[0])[pos.moved_piece(move)][to_sq(move)] < CounterMovePruneThreshold
-          && (*contHist[1])[pos.moved_piece(move)][to_sq(move)] < CounterMovePruneThreshold)
-          continue;
 
       // Make and search the move
       pos.do_move(move, st, givesCheck);
