@@ -207,7 +207,7 @@ top:
       [[fallthrough]];
 
   case QUIET:
-      if (select<Next>([&](){return   (!skipQuiets || (cur->value > 0 && pos.gives_check(*cur)))
+      if (select<Next>([&](){return   (!skipQuiets || (pos.gives_check(*cur) && pos.see_ge(*cur)))
                                    && *cur != refutations[0].move
                                    && *cur != refutations[1].move
                                    && *cur != refutations[2].move;}))
