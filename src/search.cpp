@@ -1083,6 +1083,7 @@ moves_loop: // When in check, search starts from here
                   && ss->doubleExtensions < 3)
               {
                   extension = 2;
+                  improving = false;
                   doubleExtension = true;
               }
           }
