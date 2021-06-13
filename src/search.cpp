@@ -1497,7 +1497,6 @@ moves_loop: // When in check, search starts from here
           &&  futilityBase > -VALUE_KNOWN_WIN
           &&  type_of(move) != PROMOTION)
       {
-
           if (moveCount > 2)
               continue;
 
@@ -1505,14 +1504,13 @@ moves_loop: // When in check, search starts from here
 
           if (futilityValue <= alpha)
           {
-              bestValue = std::max(bestValue, futilityValue);
-              continue;
+              value = std::max(bestValue, futilityValue);
+              goto skipSearch;
           }
-
           if (futilityBase <= alpha && !pos.see_ge(move, VALUE_ZERO + 1))
           {
-              bestValue = std::max(bestValue, futilityBase);
-              continue;
+              value = std::max(bestValue, futilityBase);
+              goto skipSearch;
           }
       }
 
@@ -1551,6 +1549,7 @@ moves_loop: // When in check, search starts from here
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
+skipSearch:
       // Check for a new best move
       if (value > bestValue)
       {
