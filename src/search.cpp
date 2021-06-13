@@ -1486,10 +1486,13 @@ moves_loop: // When in check, search starts from here
     {
       assert(is_ok(move));
 
-      givesCheck = pos.gives_check(move);
-      captureOrPromotion = pos.capture_or_promotion(move);
+      // Check for legality
+      if (!pos.legal(move))
+          continue;
 
       moveCount++;
+      givesCheck = pos.gives_check(move);
+      captureOrPromotion = pos.capture_or_promotion(move);
 
       // Futility pruning and moveCount pruning
       if (    bestValue > VALUE_TB_LOSS_IN_MAX_PLY
@@ -1523,13 +1526,6 @@ moves_loop: // When in check, search starts from here
 
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));
-
-      // Check for legality just before making the move
-      if (!pos.legal(move))
-      {
-          moveCount--;
-          continue;
-      }
 
       ss->currentMove = move;
       ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
