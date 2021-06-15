@@ -1131,8 +1131,10 @@ Value Eval::evaluate(const Position& pos) {
       int   r50 = 16 + pos.rule50_count();
       bool  largePsq = psq * 16 > (NNUEThreshold1 + pos.non_pawn_material() / 64) * r50;
 
-      v = largePsq ? Evaluation<NO_TRACE>(pos).value()  // classical
-                   : adjusted_NNUE();                   // NNUE
+      bool classical = largePsq || pos.count<ALL_PIECES>(WHITE) == 1 || pos.count<ALL_PIECES>(BLACK) == 1;
+
+      v = classical ? Evaluation<NO_TRACE>(pos).value()  // classical
+                    : adjusted_NNUE();                   // NNUE
 
   }
 
