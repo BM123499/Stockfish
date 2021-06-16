@@ -264,6 +264,7 @@ void Thread::search() {
   Color us = rootPos.side_to_move();
   int iterIdx = 0;
 
+  std::memset(BestMoves, MOVE_NONE, MAX_MOVES * sizeof(Move));
   std::memset(ss-7, 0, 10 * sizeof(Stack));
   for (int i = 7; i > 0; i--)
       (ss-i)->continuationHistory = &this->continuationHistory[0][0][NO_PIECE][0]; // Use as a sentinel
@@ -479,6 +480,7 @@ void Thread::search() {
           {
               totBestMoveChanges += th->bestMoveChanges;
               th->bestMoveChanges = 0;
+              std::memset(th->BestMoves, MOVE_NONE, MAX_MOVES * sizeof(Move));
           }
           double bestMoveInstability = 1.073 + std::max(1.0, 2.25 - 9.9 / rootDepth)
                                               * totBestMoveChanges / Threads.size();
@@ -1265,8 +1267,16 @@ moves_loop: // When in check, search starts from here
 
               // We record how often the best move has been changed in each
               // iteration. This information is used for time management and LMR
-              if (moveCount > 1)
-                  ++thisThread->bestMoveChanges;
+              Move *cur = thisThread->BestMoves;
+              while (*cur != MOVE_NONE && *cur != move)
+                  ++cur;
+
+              if (*cur == MOVE_NONE)
+              {
+                  *cur = move;
+                  if (cur != thisThread->BestMoves)
+                      ++thisThread->bestMoveChanges;
+              }
           }
           else
               // All other moves but the PV are set to the lowest value: this

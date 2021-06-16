@@ -75,8 +75,9 @@ public:
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
   Score contempt;
-};
 
+  Move BestMoves[MAX_MOVES];
+};
 
 /// MainThread is a derived class specific for main thread
 
