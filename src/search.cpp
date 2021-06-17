@@ -960,6 +960,7 @@ moves_loop: // When in check, search starts from here
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
     bool likelyFailLow =    PvNode
                          && ttMove
+                         && tte->is_pv()
                          && (tte->bound() & BOUND_UPPER)
                          && tte->depth() >= depth;
 
