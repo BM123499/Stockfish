@@ -1137,7 +1137,7 @@ moves_loop: // When in check, search starts from here
           Depth r = reduction(improving, depth, moveCount);
 
           if (   PvNode
-              && depth >= 6
+              && depth >= 5
               && !ttMove)
               r += 2;
 
