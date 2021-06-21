@@ -913,12 +913,6 @@ namespace {
          ss->ttPv = ttPv;
     }
 
-    // Step 10. If the position is not in TT, decrease depth by 2
-    if (   PvNode
-        && depth >= 6
-        && !ttMove)
-        depth -= 2;
-
 moves_loop: // When in check, search starts from here
 
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
@@ -955,13 +949,6 @@ moves_loop: // When in check, search starts from here
     value = bestValue;
     singularQuietLMR = moveCountPruning = false;
     bool doubleExtension = false;
-
-    // Indicate PvNodes that will probably fail low if the node was searched
-    // at a depth equal or greater than the current depth, and the result of this search was a fail low.
-    bool likelyFailLow =    PvNode
-                         && ttMove
-                         && (tte->bound() & BOUND_UPPER)
-                         && tte->depth() >= depth;
 
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1142,18 +1129,12 @@ moves_loop: // When in check, search starts from here
       {
           Depth r = reduction(improving, depth, moveCount);
 
-          if (PvNode)
+          if (ss->ttPv)
               r--;
 
           // Decrease reduction if the ttHit running average is large (~0 Elo)
           if (thisThread->ttHitAverage > 537 * TtHitAverageResolution * TtHitAverageWindow / 1024)
               r--;
-
-          // Decrease reduction if position is or has been on the PV
-          // and node is not likely to fail low. (~3 Elo)
-          if (   ss->ttPv
-              && !likelyFailLow)
-              r -= 2;
 
           // Increase reduction at root and non-PV nodes when the best move does not change frequently
           if (   (rootNode || !PvNode)
