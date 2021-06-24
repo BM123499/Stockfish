@@ -56,6 +56,10 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
+int T1 = 534, T2 = 904;
+
+TUNE(T1, T2);
+
 namespace {
 
   // Different node types, used as a template parameter
@@ -70,11 +74,12 @@ namespace {
   }
 
   // Reductions lookup table, initialized at startup
-  int Reductions[MAX_MOVES]; // [depth or moveNumber]
+  int Reductions1[MAX_MOVES]; // [depth]
+  int Reductions2[MAX_MOVES]; // [moveNumber]
 
   Depth reduction(bool i, Depth d, int mn) {
-    int r = Reductions[d] * Reductions[mn];
-    return (r + 534) / 1024 + (!i && r > 904);
+    int r = Reductions1[d] * Reductions2[mn];
+    return (r + T1) / 1024 + (!i && r > T2);
   }
 
   constexpr int futility_move_count(bool improving, Depth depth) {
@@ -149,10 +154,16 @@ namespace {
 
 /// Search::init() is called at startup to initialize various lookup tables
 
+int TC1[] = {0, 0, 0}, TC2[] = {0, 0, 0};
+TUNE(SetRange(0, 256), TC1);
+TUNE(SetRange(0, 256), TC2);
+
 void Search::init() {
 
-  for (int i = 1; i < MAX_MOVES; ++i)
-      Reductions[i] = int(21.3 * std::log(i + 0.25 * std::log(i)));
+  for (int i = 1; i < MAX_MOVES; ++i){
+      Reductions1[i] = int((21.9 + (TC1[0]/64.0)) * std::log(i + TC1[1]/64.0) + TC1[2]/64.0);
+      Reductions2[i] = int((21.9 + (TC2[0]/64.0)) * std::log(i + TC2[1]/64.0) + TC2[2]/64.0);
+  }
 }
 
 
