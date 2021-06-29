@@ -1108,8 +1108,20 @@ Value Eval::evaluate(const Position& pos) {
       Value psq = Value(abs(eg_value(pos.psq_score())));
       bool classical = psq * 5 > (750 + pos.non_pawn_material() / 64) * (5 + r50);
 
-      v = classical ? Evaluation<NO_TRACE>(pos).value()  // classical
-                    : adjusted_NNUE();                   // NNUE
+      if (classical)
+      {
+          // Probe the material hash table
+          Material::Entry* me = Material::probe(pos);
+
+          // If we have a specialized evaluation function for the current material
+          // configuration, call it and return.
+          if (me->specialized_eval_exists())
+              v =  me->evaluate(pos);
+          else
+              v = (pos.side_to_move() == WHITE ? psq : -psq);
+      }
+      else
+          v = adjusted_NNUE();                   // NNUE
   }
 
   // Damp down the evaluation linearly when shuffling
