@@ -71,7 +71,6 @@ namespace Endgames {
 
   void init() {
 
-    add<KPK>("KPK");
     add<KNNK>("KNNK");
     add<KBNK>("KBNK");
     add<KRKP>("KRKP");
@@ -144,29 +143,6 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
                 + 420 * push_to_corner(opposite_colors(strongBishop, SQ_A1) ? flip_file(weakKing) : weakKing);
 
   assert(abs(result) < VALUE_TB_WIN_IN_MAX_PLY);
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
-
-/// KP vs K. This endgame is evaluated with the help of a bitbase
-template<>
-Value Endgame<KPK>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
-
-  // Assume strongSide is white and the pawn is on files A-D
-  Square strongKing = normalize(pos, strongSide, pos.square<KING>(strongSide));
-  Square strongPawn = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
-  Square weakKing   = normalize(pos, strongSide, pos.square<KING>(weakSide));
-
-  Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
-
-  if (!Bitbases::probe(strongKing, strongPawn, weakKing, us))
-      return VALUE_DRAW;
-
-  Value result = VALUE_KNOWN_WIN + PawnValueEg + Value(rank_of(strongPawn));
-
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
@@ -576,6 +552,25 @@ ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
 }
 
 
+/// KP vs K. This just use one rule: Strong side can promote without the help of Strong King.
+template<>
+ScaleFactor Endgame<KPK>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+
+  // Assume strongSide is white and the pawn is on files A-D
+  Square strongPawn = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
+  Square weakKing   = normalize(pos, strongSide, pos.square<KING>(weakSide));
+  Color us = strongSide == pos.side_to_move() ? WHITE : BLACK;
+
+  int distToPromote = RANK_8 - rank_of(strongPawn) - (us == WHITE && rank_of(strongPawn) == RANK_2);
+  int distToCapture = distance<Square>(weakKing, make_square(file_of(strongPawn), RANK_8)) - (us == BLACK);
+  
+  return distToPromote < distToCapture ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+}
+
+
 /// K and two or more pawns vs K. There is just a single rule here: if all pawns
 /// are on the same rook file and are blocked by the defending king, it's a draw.
 template<>
@@ -716,11 +711,8 @@ ScaleFactor Endgame<KBPKN>::operator()(const Position& pos) const {
 }
 
 
-/// KP vs KP. This is done by removing the weakest side's pawn and probing the
-/// KP vs K bitbase: if the weakest side has a draw without the pawn, it probably
-/// has at least a draw with the pawn as well. The exception is when the stronger
-/// side's pawn is far advanced and not on a rook file; in this case it is often
-/// possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
+/// KP vs KP. When the stronger side's pawn is far advanced and not on a rook file; 
+/// in this case it is often possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
 template<>
 ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
@@ -728,7 +720,6 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
   assert(verify_material(pos, weakSide,   VALUE_ZERO, 1));
 
   // Assume strongSide is white and the pawn is on files A-D
-  Square strongKing = normalize(pos, strongSide, pos.square<KING>(strongSide));
   Square weakKing   = normalize(pos, strongSide, pos.square<KING>(weakSide));
   Square strongPawn = normalize(pos, strongSide, pos.square<PAWN>(strongSide));
 
@@ -739,9 +730,10 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
   if (rank_of(strongPawn) >= RANK_5 && file_of(strongPawn) != FILE_A)
       return SCALE_FACTOR_NONE;
 
-  // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
-  // it's probably at least a draw even with the pawn.
-  return Bitbases::probe(strongKing, strongPawn, weakKing, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+  int distToPromote = RANK_8 - rank_of(strongPawn) - (us == WHITE && rank_of(strongPawn) == RANK_2);
+  int distToCapture = distance<Square>(weakKing, make_square(file_of(strongPawn), RANK_8)) - (us == BLACK);
+  
+  return distToPromote < distToCapture ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
 
 } // namespace Stockfish

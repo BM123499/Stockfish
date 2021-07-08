@@ -63,6 +63,7 @@ namespace {
 
   Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
   Endgame<KQKRPs> ScaleKQKRPs[] = { Endgame<KQKRPs>(WHITE), Endgame<KQKRPs>(BLACK) };
+  Endgame<KPK>    ScaleKPK[]    = { Endgame<KPK>(WHITE),   Endgame<KPK>(BLACK) };
   Endgame<KPsK>   ScaleKPsK[]   = { Endgame<KPsK>(WHITE),   Endgame<KPsK>(BLACK) };
   Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
 
@@ -181,15 +182,17 @@ Entry* probe(const Position& pos) {
   {
       if (!pos.count<PAWN>(BLACK))
       {
-          assert(pos.count<PAWN>(WHITE) >= 2);
-
-          e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
+          if (pos.count<PAWN>(WHITE) == 1)
+              e->scalingFunction[WHITE] = &ScaleKPK[WHITE];
+          else
+              e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
       }
       else if (!pos.count<PAWN>(WHITE))
       {
-          assert(pos.count<PAWN>(BLACK) >= 2);
-
-          e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
+          if (pos.count<PAWN>(BLACK) == 1)
+              e->scalingFunction[BLACK] = &ScaleKPK[BLACK];
+          else
+              e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
       }
       else if (pos.count<PAWN>(WHITE) == 1 && pos.count<PAWN>(BLACK) == 1)
       {

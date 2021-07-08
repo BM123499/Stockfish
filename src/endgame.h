@@ -39,7 +39,6 @@ enum EndgameCode {
   KNNKP, // KNN vs KP
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
-  KPK,   // KP vs K
   KRKP,  // KR vs KP
   KRKB,  // KR vs KB
   KRKN,  // KR vs KN
@@ -52,6 +51,7 @@ enum EndgameCode {
   KRPKR,   // KRP vs KR
   KRPKB,   // KRP vs KB
   KRPPKRP, // KRPP vs KRP
+  KPK,   // KP vs K
   KPsK,    // K and pawns vs K
   KBPKB,   // KBP vs KB
   KBPPKB,  // KBPP vs KB
